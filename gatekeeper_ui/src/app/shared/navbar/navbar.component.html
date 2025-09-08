@@ -1,0 +1,17 @@
+<div class="navbar-container">
+    <p-menubar [model]="items">
+        <ng-template pTemplate="end">
+            <div class="auth-actions" *ngIf="!isLoggedIn; else loggedInTpl">
+                <button pButton type="button" label="Login" [routerLink]="['/login']" class="p-button-text"></button>
+                <button pButton type="button" label="Register" [routerLink]="['/register']"></button>
+            </div>
+            <ng-template #loggedInTpl>
+                <div class="auth-actions">
+                    <button pButton type="button" label="Hesabım" [routerLink]="['/my-account']"
+                        class="p-button-text"></button>
+                    <button pButton type="button" label="Logout" (click)="logout()"></button>
+                </div>
+            </ng-template>
+        </ng-template>
+    </p-menubar>
+</div>
