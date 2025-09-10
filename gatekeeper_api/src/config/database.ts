@@ -46,43 +46,33 @@ export const createDatabaseIfNotExists = async (configService: ConfigService): P
     try {
         const mongoose = require('mongoose');
 
-        // Bağlantıyı kur
+        // Bağlantıyı kur (yalnızca okuma/kontrol için)
         await mongoose.connect(config.uri, config.options);
 
         const databaseName = configService.get<string>('MONGO_DATABASE');
 
-        // Basit yaklaşım: Veritabanına bir collection oluşturmayı dene
-        const db = mongoose.connection.db;
+        // Native MongoDB client üzerinden tüm veritabanlarını listele
+        const client = mongoose.connection.getClient();
+        const adminDb = client.db().admin();
+        const { databases } = await adminDb.listDatabases();
 
-        try {
-            // Veritabanını oluşturmak için bir collection'a veri ekle
-            const initCollection = db.collection('_init');
-
-            // Eğer collection zaten varsa, veritabanı mevcut
-            const existingDocs = await initCollection.countDocuments();
-            if (existingDocs > 0) {
-                console.log(`✅ Veritabanı '${databaseName}' zaten mevcut`);
-                return false;
-            }
-
-            // Collection'a bir doküman ekle (veritabanını oluşturmak için)
-            await initCollection.insertOne({
-                _id: 'init',
-                created: new Date(),
-                message: 'Veritabanı başlatıldı'
-            });
-
-            console.log(`✅ Veritabanı '${databaseName}' başarıyla oluşturuldu`);
-
-            // Geçici dokümanı sil
-            await initCollection.deleteOne({ _id: 'init' });
-
-            return true;
-        } catch (collectionError) {
-            // Collection oluşturulamadı, muhtemelen veritabanı zaten mevcut
+        const exists = databases.some((d: { name: string }) => d.name === databaseName);
+        if (exists) {
             console.log(`✅ Veritabanı '${databaseName}' zaten mevcut`);
             return false;
         }
+
+        // Mevcut değilse oluşturmak için hedef DB'de geçici bir koleksiyon kullan
+        const targetDb = client.db(databaseName);
+        const initCollection = targetDb.collection('_init');
+        await initCollection.insertOne({
+            _id: 'init',
+            created: new Date(),
+            message: 'Veritabanı başlatıldı'
+        });
+        console.log(`✅ Veritabanı '${databaseName}' başarıyla oluşturuldu`);
+        await initCollection.deleteOne({ _id: 'init' });
+        return true;
 
     } catch (error) {
         throw new Error(`Veritabanı oluşturulurken hata: ${error.message}`);

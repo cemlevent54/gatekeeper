@@ -3,6 +3,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { createDatabaseModule } from './config/database';
+import { AuthModule } from './modules/auth/auth.module';
+import { HealthController } from './health/health.controller';
 
 @Module({
   imports: [
@@ -11,8 +13,9 @@ import { createDatabaseModule } from './config/database';
       envFilePath: '.env',
     }),
     createDatabaseModule(new ConfigService()),
+    AuthModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [AppService],
 })
 export class AppModule { }

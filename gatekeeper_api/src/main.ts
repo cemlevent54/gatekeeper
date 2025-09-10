@@ -1,15 +1,41 @@
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
+import { WinstonModule } from 'nest-winston';
+import * as winston from 'winston';
 import { AppModule } from './app.module';
 import { checkAndCreateDatabase } from './config';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
   try {
-    // NestJS uygulamasını oluştur
-    const app = await NestFactory.create(AppModule);
+    // Winston logger oluştur - [context][timestamp][level]  -- message
+    const logFormat = winston.format.printf(({ level, message, context, timestamp, stack }) => {
+      const msg = stack || message;
+      return `[${timestamp}][${level}][${context || 'App'}]  -- ${msg}`;
+    });
+
+    const winstonLogger = WinstonModule.createLogger({
+      transports: [
+        new winston.transports.Console({
+          level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+          format: winston.format.combine(
+            winston.format.timestamp(),
+            winston.format.errors({ stack: true }),
+            logFormat,
+          ),
+        }),
+      ],
+    });
+
+    // NestJS uygulamasını Winston logger ile oluştur
+    const app = await NestFactory.create(AppModule, { logger: winstonLogger });
+    // Global HTTP logging interceptor
+    app.useGlobalInterceptors(new LoggingInterceptor());
+    // Global prefix
+    app.setGlobalPrefix('api');
     const configService = app.get(ConfigService);
 
     // MongoDB veritabanını kontrol et ve gerekirse oluştur
