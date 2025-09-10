@@ -6,12 +6,16 @@ import { Model } from 'mongoose';
 import { User, UserDocument } from '../../../schemas/user.schema';
 import { Role, RoleDocument } from '../../../schemas/role.schema';
 import { LoginDto } from '../dto/login.dto';
+import { JwtService } from './jwt/jwt.service';
+import { EmailVerificationService } from './email-verification.service';
 
 @Injectable()
 export class AuthService {
     constructor(
         @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
         @InjectModel(Role.name) private readonly roleModel: Model<RoleDocument>,
+        private readonly jwtService: JwtService,
+        private readonly emailVerificationService: EmailVerificationService,
     ) { }
 
     async register(dto: RegisterDto): Promise<{ user: any; reactivated: boolean } | null> {
@@ -64,6 +68,21 @@ export class AuthService {
             verifiedAt: null,
         });
 
+        // Email doğrulama için OTP ve token oluştur
+        const { otpCode, token } = this.emailVerificationService.createVerificationData(String(created._id));
+
+        // Doğrulama emaili gönder
+        const emailSent = await this.emailVerificationService.sendVerificationEmail(
+            created.email,
+            created.username,
+            otpCode,
+            token
+        );
+
+        if (!emailSent) {
+            console.warn(`[AuthService] Email gönderilemedi: ${created.email}`);
+        }
+
         // Parola olmadan geri döndür
         const user = await this.userModel
             .findById(created._id)
@@ -114,6 +133,12 @@ export class AuthService {
 
         // Başarılı - parola hariç kullanıcıyı döndür
         const safe = await this.userModel.findById(user._id).select('-password').lean();
-        return safe;
+        const tokenPair = this.jwtService.generateTokenPair({
+            sub: String(user._id),
+            username: (user as any).username,
+            email: (user as any).email,
+            role: String((user as any).role),
+        });
+        return { user: safe, tokens: tokenPair };
     }
 }

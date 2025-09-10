@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { JwtService } from './jwt/jwt.service';
+import { EmailVerificationService } from './email-verification.service';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt');
@@ -19,14 +21,37 @@ describe('AuthService', () => {
     findOne: jest.fn(),
   };
 
+  const jwtServiceMock: any = {
+    generateTokenPair: jest.fn(),
+    verifyAccessToken: jest.fn(),
+    verifyRefreshToken: jest.fn(),
+  };
+
+  const emailVerificationServiceMock: any = {
+    createVerificationData: jest.fn().mockReturnValue({
+      otpCode: '123456',
+      token: 'verification-token',
+    }),
+    sendVerificationEmail: jest.fn().mockResolvedValue(true),
+  };
+
   beforeEach(async () => {
     jest.resetAllMocks();
+
+    // Mock'ları yeniden tanımla
+    emailVerificationServiceMock.createVerificationData.mockReturnValue({
+      otpCode: '123456',
+      token: 'verification-token',
+    });
+    emailVerificationServiceMock.sendVerificationEmail.mockResolvedValue(true);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: getModelToken('User'), useValue: userModelMock },
         { provide: getModelToken('Role'), useValue: roleModelMock },
+        { provide: JwtService, useValue: jwtServiceMock },
+        { provide: EmailVerificationService, useValue: emailVerificationServiceMock },
       ],
     }).compile();
 
@@ -116,9 +141,18 @@ describe('AuthService', () => {
       userModelMock.findById.mockReturnValue({
         select: () => ({ lean: () => Promise.resolve({ _id: 'u3', username: 'john' }) }),
       });
+      jwtServiceMock.generateTokenPair.mockReturnValue({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+        accessTokenExpiresAt: 1234567890,
+        refreshTokenExpiresAt: 1234567890,
+      });
 
       const result = await service.login(dto as any);
-      expect(result).toMatchObject({ _id: 'u3', username: 'john' });
+      expect(result).toMatchObject({
+        user: { _id: 'u3', username: 'john' },
+        tokens: expect.any(Object)
+      });
       expect(save).toHaveBeenCalled();
     });
 
@@ -137,8 +171,18 @@ describe('AuthService', () => {
       userModelMock.findById.mockReturnValue({
         select: () => ({ lean: () => Promise.resolve({ _id: 'u5', username: 'john' }) }),
       });
+      jwtServiceMock.generateTokenPair.mockReturnValue({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+        accessTokenExpiresAt: 1234567890,
+        refreshTokenExpiresAt: 1234567890,
+      });
+
       const result = await service.login(dto as any);
-      expect(result).toMatchObject({ _id: 'u5', username: 'john' });
+      expect(result).toMatchObject({
+        user: { _id: 'u5', username: 'john' },
+        tokens: expect.any(Object)
+      });
     });
   });
 });

@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>{{subject}}</title>
+</head>
+
+<body>
+    <h2>Merhaba {{name}},</h2>
+    <p>Gatekeeper'a hoş geldiniz.</p>
+    {{#if actionUrl}}
+    <p>
+        Hesabınızı doğrulamak için aşağıdaki butona tıklayın:
+    </p>
+    <p>
+        <a href="{{actionUrl}}"
+            style="display:inline-block;padding:10px 16px;background:#2962ff;color:#fff !important;text-decoration:none;border-radius:6px;">Hesabı
+            Doğrula</a>
+    </p>
+    {{/if}}
+    <p>İyi günler dileriz.</p>
+</body>
+
+</html>
