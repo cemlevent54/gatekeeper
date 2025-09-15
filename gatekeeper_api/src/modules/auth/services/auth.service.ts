@@ -132,7 +132,7 @@ export class AuthService {
         }
 
         // Başarılı - parola hariç kullanıcıyı döndür
-        const safe = await this.userModel.findById(user._id).select('-password').lean();
+        const safe = await this.userModel.findById(user._id).select('-password').populate('role', 'name').lean();
         const tokenPair = this.jwtService.generateTokenPair({
             sub: String(user._id),
             username: (user as any).username,

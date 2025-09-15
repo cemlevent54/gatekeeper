@@ -1,12 +1,13 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
+import { CommonModule } from '@angular/common';
 
 @Component({
-    selector: 'app-home-page',
-    standalone: true,
-    imports: [RouterLink, ButtonModule],
-    template: `
+  selector: 'app-home-page',
+  standalone: true,
+  imports: [RouterLink, ButtonModule, CommonModule],
+  template: `
 <section class="home">
   <div class="hero">
     <h1>Gatekeeper</h1>
@@ -18,7 +19,7 @@ import { ButtonModule } from 'primeng/button';
   </div>
 </section>
     `,
-    styles: [`
+  styles: [`
       .home { padding: 2rem 1rem; display: flex; justify-content: center; }
       .hero { max-width: 900px; width: 100%; text-align: center; margin-top: 2rem; }
       .hero h1 { font-size: 2.25rem; margin-bottom: .75rem; }

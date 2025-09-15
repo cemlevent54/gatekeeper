@@ -4,7 +4,7 @@ import { Logger } from '@nestjs/common';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 import { AppModule } from './app.module';
-import { checkAndCreateDatabase } from './config';
+import { checkAndCreateDatabase, getCorsConfig } from './config';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 async function bootstrap() {
@@ -32,6 +32,10 @@ async function bootstrap() {
 
     // NestJS uygulamasını Winston logger ile oluştur
     const app = await NestFactory.create(AppModule, { logger: winstonLogger });
+
+    // CORS konfigürasyonunu uygula
+    app.enableCors(getCorsConfig());
+
     // Global HTTP logging interceptor
     app.useGlobalInterceptors(new LoggingInterceptor());
     // Global prefix

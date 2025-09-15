@@ -6,27 +6,34 @@ import { PasswordModule } from 'primeng/password';
 import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
+import { AuthService } from '../../services/auth.service';
+import { CommonModule } from '@angular/common';
+import { NavbarComponent } from '../../shared/navbar/navbar.component';
 
 @Component({
-    selector: 'app-login-page',
-    standalone: true,
-    imports: [RouterLink, FormsModule, InputTextModule, PasswordModule, ButtonModule, ToastModule],
-    template: `
+  selector: 'app-login-page',
+  standalone: true,
+  imports: [RouterLink, FormsModule, InputTextModule, PasswordModule, ButtonModule, ToastModule, CommonModule],
+  template: `
 <section class="login-shell">
   <div class="login-card">
     <h2>Giriş Yap</h2>
 
-    <div class="field flex flex-col gap-2">
-      <label for="username">Username veya Email</label>
-      <input pInputText id="username" aria-describedby="username-help" [(ngModel)]="usernameOrEmail" placeholder="example@domain.com" />
-    </div>
+    <form (ngSubmit)="login()" #loginForm="ngForm">
+      <div class="field flex flex-col gap-2">
+        <label for="username">Username veya Email</label>
+        <input pInputText id="username" aria-describedby="username-help" [(ngModel)]="usernameOrEmail" name="username" placeholder="example@domain.com" required />
+      </div>
 
-    <div class="field">
-      <label for="password">Şifre</label>
-      <input id="password" type="password" pPassword [(ngModel)]="password" placeholder="••••••••" />
-    </div>
+      <div class="field">
+        <label for="password">Şifre</label>
+        <input id="password" type="password" pPassword [(ngModel)]="password" name="password" placeholder="••••••••" required />
+      </div>
 
-    <button pButton type="button" label="Giriş Yap" class="login-btn" (click)="mockLogin()"></button>
+      <button pButton type="submit" [label]="isLoading ? 'Giriş yapılıyor...' : 'Giriş Yap'" 
+              class="login-btn" 
+              [disabled]="isLoading || !loginForm.form.valid"></button>
+    </form>
     
     <br> <br>
 
@@ -42,7 +49,7 @@ import { MessageService } from 'primeng/api';
 </section>
 <p-toast></p-toast>
     `,
-    styles: [`
+  styles: [`
       .login-shell { min-height: calc(100dvh - 80px); display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
       .login-card { width: 100%; max-width: 420px; padding: 1.25rem 1.25rem 1.5rem; border-radius: 12px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); backdrop-filter: blur(6px); box-shadow: 0 10px 30px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.12); }
       h2 { margin: 0 0 1rem; text-align: center; font-weight: 600; }
@@ -104,41 +111,98 @@ import { MessageService } from 'primeng/api';
     `]
 })
 export class LoginPageComponent {
-    usernameOrEmail = '';
-    password = '';
+  usernameOrEmail = '';
+  password = '';
+  isLoading = false;
 
-    constructor(private router: Router, private messageService: MessageService) { }
+  constructor(
+    private router: Router,
+    private messageService: MessageService,
+    private authService: AuthService
+  ) { }
 
-    mockLogin(): void {
-        const uname = (this.usernameOrEmail ?? '').trim();
-        const pwd = (this.password ?? '').trim();
-        if (!uname || !pwd) {
-            console.log("uname: ", uname);
-            console.log("pwd: ", pwd);
-            console.warn('Geçersiz kullanıcı veya şifre');
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Hata',
-                detail: 'Kullanıcı adı ve şifre gerekli'
-            });
-            return;
-        }
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('jwt', 'mockToken');
-            this.messageService.add({
-                severity: 'success',
-                summary: 'Başarılı',
-                detail: 'Giriş yapıldı!'
-            });
-            // Ana sayfaya yönlendir ve navbar'ı güncelle
-            setTimeout(() => {
-                this.router.navigate(['/home']).then(() => {
-                    // Navbar'ı güncellemek için sayfayı yenile
-                    window.location.reload();
-                });
-            }, 1000);
-        }
+  login(): void {
+    const usernameOrEmail = (this.usernameOrEmail ?? '').trim();
+    const password = (this.password ?? '').trim();
+
+    // Form validasyonu
+    if (!usernameOrEmail || !password) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Hata',
+        detail: 'Kullanıcı adı ve şifre gerekli'
+      });
+      return;
     }
+
+    this.isLoading = true;
+
+    this.authService.login({ usernameOrEmail, password }).subscribe({
+      next: (response) => {
+        this.isLoading = false;
+
+        if (response.success && response.data && response.data.tokens) {
+          // Token'ları kaydet
+          if (response.data.tokens.accessToken && response.data.tokens.refreshToken) {
+            this.authService.setTokens(
+              response.data.tokens.accessToken,
+              response.data.tokens.refreshToken
+            );
+
+            // JWT token'ı da localStorage'a kaydet (navbar için)
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('jwt', response.data.tokens.accessToken);
+
+              // Navbar'ı güncellemek için custom event dispatch et
+              window.dispatchEvent(new Event('authStateChanged'));
+            }
+          }
+
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Başarılı',
+            detail: response.message || 'Giriş yapıldı!'
+          });
+
+          // Role bazlı yönlendirme
+          const redirectPath = this.getRedirectPathByRole(response.data.user?.role?.name);
+
+          setTimeout(() => {
+            this.router.navigate([redirectPath]).then(() => {
+              // Navbar'ı güncellemek için sayfayı yenile
+              window.location.reload();
+            });
+          }, 1000);
+        } else {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Hata',
+            detail: response.message || 'Giriş başarısız'
+          });
+        }
+      },
+      error: (error) => {
+        this.isLoading = false;
+        console.error('[LoginComponent][ERROR]', error);
+
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Hata',
+          detail: error.message || 'Giriş yapılırken bir hata oluştu'
+        });
+      }
+    });
+  }
+
+  private getRedirectPathByRole(roleName?: string): string {
+    switch (roleName?.toLowerCase()) {
+      case 'admin':
+        return '/admin/dashboard';
+      case 'user':
+      default:
+        return '/home';
+    }
+  }
 }
 
 

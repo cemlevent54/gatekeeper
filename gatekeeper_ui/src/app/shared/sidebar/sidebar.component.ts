@@ -1,20 +1,21 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
+import { AuthService } from '../../services/auth.service';
 
 interface MenuItem {
-    label: string;
-    icon: string;
-    routerLink?: string;
-    children?: MenuItem[];
+  label: string;
+  icon: string;
+  routerLink?: string;
+  children?: MenuItem[];
 }
 
 @Component({
-    selector: 'app-sidebar',
-    standalone: true,
-    imports: [CommonModule, RouterLink, RouterLinkActive, ButtonModule],
-    template: `
+  selector: 'app-sidebar',
+  standalone: true,
+  imports: [CommonModule, RouterLink, RouterLinkActive, ButtonModule],
+  template: `
     <aside class="sidebar" [class.collapsed]="isCollapsed" [class.mobile-open]="isMobileOpen">
       <div class="sidebar-header">
         <h3 class="logo" *ngIf="!isCollapsed">Admin Panel</h3>
@@ -77,7 +78,7 @@ interface MenuItem {
       </div>
     </aside>
   `,
-    styles: [`
+  styles: [`
     .sidebar {
       width: 280px;
       height: 100vh;
@@ -245,95 +246,127 @@ interface MenuItem {
   `]
 })
 export class SidebarComponent implements OnInit {
-    isCollapsed = false;
-    isMobileOpen = false;
-    menuItems: (MenuItem & { expanded?: boolean })[] = [];
+  isCollapsed = false;
+  isMobileOpen = false;
+  menuItems: (MenuItem & { expanded?: boolean })[] = [];
 
-    ngOnInit(): void {
-        this.menuItems = [
-            {
-                label: 'Dashboard',
-                icon: 'pi pi-home',
-                routerLink: '/admin/dashboard'
-            },
-            {
-                label: 'Hesabım',
-                icon: 'pi pi-user',
-                routerLink: '/admin/account'
-            },
-            {
-                label: 'Kullanıcılar',
-                icon: 'pi pi-users',
-                routerLink: '/admin/users'
-            },
-            {
-                label: 'İçerik Yönetimi',
-                icon: 'pi pi-file-edit',
-                children: [
-                    {
-                        label: 'Sayfalar',
-                        icon: 'pi pi-file',
-                        routerLink: '/admin/pages'
-                    },
-                    {
-                        label: 'Blog',
-                        icon: 'pi pi-book',
-                        routerLink: '/admin/blog'
-                    },
-                    {
-                        label: 'Medya',
-                        icon: 'pi pi-image',
-                        routerLink: '/admin/media'
-                    }
-                ]
-            },
-            {
-                label: 'Ayarlar',
-                icon: 'pi pi-cog',
-                children: [
-                    {
-                        label: 'Genel',
-                        icon: 'pi pi-sliders-h',
-                        routerLink: '/admin/settings/general'
-                    },
-                    {
-                        label: 'Güvenlik',
-                        icon: 'pi pi-shield',
-                        routerLink: '/admin/settings/security'
-                    },
-                    {
-                        label: 'Email',
-                        icon: 'pi pi-envelope',
-                        routerLink: '/admin/settings/email'
-                    }
-                ]
-            },
-            {
-                label: 'Raporlar',
-                icon: 'pi pi-chart-bar',
-                routerLink: '/admin/reports'
-            }
-        ];
+  constructor(
+    private authService: AuthService,
+    private router: Router
+  ) { }
+
+  ngOnInit(): void {
+    this.menuItems = [
+      {
+        label: 'Dashboard',
+        icon: 'pi pi-home',
+        routerLink: '/admin/dashboard'
+      },
+      {
+        label: 'Hesabım',
+        icon: 'pi pi-user',
+        routerLink: '/admin/account'
+      },
+      {
+        label: 'Kullanıcılar',
+        icon: 'pi pi-users',
+        routerLink: '/admin/users'
+      },
+      {
+        label: 'İçerik Yönetimi',
+        icon: 'pi pi-file-edit',
+        children: [
+          {
+            label: 'Sayfalar',
+            icon: 'pi pi-file',
+            routerLink: '/admin/pages'
+          },
+          {
+            label: 'Blog',
+            icon: 'pi pi-book',
+            routerLink: '/admin/blog'
+          },
+          {
+            label: 'Medya',
+            icon: 'pi pi-image',
+            routerLink: '/admin/media'
+          }
+        ]
+      },
+      {
+        label: 'Ayarlar',
+        icon: 'pi pi-cog',
+        children: [
+          {
+            label: 'Genel',
+            icon: 'pi pi-sliders-h',
+            routerLink: '/admin/settings/general'
+          },
+          {
+            label: 'Güvenlik',
+            icon: 'pi pi-shield',
+            routerLink: '/admin/settings/security'
+          },
+          {
+            label: 'Email',
+            icon: 'pi pi-envelope',
+            routerLink: '/admin/settings/email'
+          }
+        ]
+      },
+      {
+        label: 'Raporlar',
+        icon: 'pi pi-chart-bar',
+        routerLink: '/admin/reports'
+      }
+    ];
+  }
+
+  toggleSidebar(): void {
+    if (window.innerWidth <= 768) {
+      this.isMobileOpen = !this.isMobileOpen;
+    } else {
+      this.isCollapsed = !this.isCollapsed;
     }
+  }
 
-    toggleSidebar(): void {
-        if (window.innerWidth <= 768) {
-            this.isMobileOpen = !this.isMobileOpen;
-        } else {
-            this.isCollapsed = !this.isCollapsed;
+  toggleSubmenu(item: MenuItem & { expanded?: boolean }): void {
+    if (item.children) {
+      item.expanded = !item.expanded;
+    }
+  }
+
+  logout(): void {
+    const refreshToken = this.authService.getRefreshToken();
+
+    if (refreshToken) {
+      this.authService.logout(refreshToken).subscribe({
+        next: (response) => {
+          console.log('[SidebarComponent][Logout] Success:', response);
+          this.handleLogoutSuccess();
+        },
+        error: (error) => {
+          console.error('[SidebarComponent][Logout] Error:', error);
+          this.handleLogoutSuccess(); // Even if error, perform local logout
         }
+      });
+    } else {
+      this.handleLogoutSuccess();
     }
+  }
 
-    toggleSubmenu(item: MenuItem & { expanded?: boolean }): void {
-        if (item.children) {
-            item.expanded = !item.expanded;
-        }
-    }
-
-    logout(): void {
+  private handleLogoutSuccess(): void {
+    try {
+      this.authService.clearTokens();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('authStateChanged'));
+      }
+    } finally {
+      this.router.navigate(['/login']).then(() => {
         if (typeof window !== 'undefined') {
-            localStorage.removeItem('jwt');
-            window.location.href = '/login';
+          window.location.reload();
         }
+      });
     }
+  }
 }

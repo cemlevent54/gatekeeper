@@ -1,6 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
 import { getDatabaseConfig, DatabaseConfig, createDatabaseIfNotExists } from './database';
+import { getCorsConfig } from './cors';
 
 const logger = new Logger('DatabaseTest');
 
@@ -132,3 +133,6 @@ export const checkAndCreateDatabase = async (configService: ConfigService): Prom
 
     return await dbTester.checkAndCreateDatabase(configService);
 };
+
+// CORS konfigürasyonunu export et
+export { getCorsConfig };
