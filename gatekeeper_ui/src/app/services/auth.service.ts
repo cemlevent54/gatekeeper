@@ -140,6 +140,28 @@ export class AuthService {
         return !!this.getAccessToken();
     }
 
+    getCurrentUser(): any {
+        if (typeof window !== 'undefined') {
+            const jwt = localStorage.getItem('jwt');
+            if (jwt) {
+                try {
+                    // JWT token'ı decode et
+                    const payload = JSON.parse(atob(jwt.split('.')[1]));
+                    return {
+                        id: payload.sub,
+                        username: payload.username,
+                        email: payload.email,
+                        role: payload.role
+                    };
+                } catch (error) {
+                    console.error('JWT decode hatası:', error);
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
     private handleError(error: HttpErrorResponse): Observable<never> {
         let errorMessage = 'Beklenmeyen bir hata oluştu';
 

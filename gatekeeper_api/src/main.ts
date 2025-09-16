@@ -6,6 +6,8 @@ import * as winston from 'winston';
 import { AppModule } from './app.module';
 import { checkAndCreateDatabase, getCorsConfig } from './config';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -31,10 +33,15 @@ async function bootstrap() {
     });
 
     // NestJS uygulamasını Winston logger ile oluştur
-    const app = await NestFactory.create(AppModule, { logger: winstonLogger });
+    const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger: winstonLogger });
 
     // CORS konfigürasyonunu uygula
     app.enableCors(getCorsConfig());
+
+    // Static file serving for uploads
+    app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+      prefix: '/uploads/',
+    });
 
     // Global HTTP logging interceptor
     app.useGlobalInterceptors(new LoggingInterceptor());

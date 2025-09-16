@@ -28,11 +28,7 @@ export class AuthService {
             $or: [{ email: dto.email.toLowerCase().trim() }, { username: dto.username.trim() }],
         });
         if (existing) {
-            // isActive false ise kesinlikle reddet
-            if (existing.isActive === false) {
-                throw new ForbiddenException('User is blocked');
-            }
-            // Soft deleted ise ve block değilse reaktivasyon yap
+            // Soft deleted ise reaktivasyon yap
             if (existing.isDeleted === true) {
                 const saltRounds = 10;
                 const hashedPassword = await bcrypt.hash(dto.password, saltRounds);
@@ -40,6 +36,21 @@ export class AuthService {
                 (existing as any).password = hashedPassword;
                 (existing as any).username = dto.username.trim();
                 (existing as any).email = dto.email.toLowerCase().trim();
+
+                // Eğer daha önce doğrulanmamışsa email doğrulama gönder
+                if (!existing.verifiedAt) {
+                    const { otpCode, token } = this.emailVerificationService.createVerificationData(String(existing._id));
+                    const emailSent = await this.emailVerificationService.sendVerificationEmail(
+                        dto.email.toLowerCase().trim(),
+                        dto.username.trim(),
+                        otpCode,
+                        token
+                    );
+                    if (!emailSent) {
+                        console.warn(`[AuthService] Reaktivasyon email gönderilemedi: ${dto.email}`);
+                    }
+                }
+
                 await (existing as any).save();
                 const user = await this.userModel.findById(existing._id).select('-password').lean();
                 return { user, reactivated: true };
@@ -109,9 +120,9 @@ export class AuthService {
             return null; // unauthorized
         }
 
-        // isActive değilse engelle
-        if (user.isActive === false) {
-            throw new ForbiddenException('User is blocked');
+        // Soft deleted ise girişe izin verme
+        if (user.isDeleted === true) {
+            throw new ForbiddenException('User account is deleted');
         }
 
         // verifiedAt boşsa girişe izin verme
@@ -119,17 +130,16 @@ export class AuthService {
             throw new ForbiddenException('User email is not verified');
         }
 
-        // Soft deleted ise ve block değilse reaktivasyon
-        if (user.isDeleted === true) {
-            user.isDeleted = false;
-            await user.save();
-        }
-
         // Parola kontrolü
         const ok = await bcrypt.compare(dto.password, (user as any).password);
         if (!ok) {
             return null; // unauthorized
         }
+
+        // Başarılı giriş - lastLoginAt güncelle
+        await this.userModel.findByIdAndUpdate(user._id, {
+            lastLoginAt: new Date()
+        });
 
         // Başarılı - parola hariç kullanıcıyı döndür
         const safe = await this.userModel.findById(user._id).select('-password').populate('role', 'name').lean();

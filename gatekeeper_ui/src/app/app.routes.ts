@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { LoginPageComponent } from '@pages/login/login.component';
 import { RegisterPageComponent } from '@pages/register/register.component';
-import { AccountPageComponent } from '@pages/account/account.component';
+import { UserAccountComponent } from '@pages/account/account.component';
 import { HomePageComponent } from '@pages/home/home.component';
 import { VerifyEmailPageComponent } from '@pages/verify-email/verify-email.component';
 import { ForgotPasswordPageComponent } from '@pages/forgot-password/forgot-password.component';
@@ -9,7 +9,7 @@ import { ResetPasswordPageComponent } from '@pages/reset-password/reset-password
 import { AdminLayoutComponent } from '@layouts/admin-layout/admin-layout.component';
 import { AdminDashboardComponent } from '@pages/admin/dashboard/admin-dashboard.component';
 import { AdminAccountComponent } from '@pages/admin/account/admin-account.component';
-import { MyAccountComponent } from '@pages/my-account/my-account.component';
+import { AdminUsersComponent } from '@pages/admin/users/admin-users.component';
 
 export const routes: Routes = [
     { path: '', pathMatch: 'full', redirectTo: 'home' },
@@ -19,15 +19,15 @@ export const routes: Routes = [
     { path: 'verify-email', component: VerifyEmailPageComponent },
     { path: 'forgot-password', component: ForgotPasswordPageComponent },
     { path: 'reset-password', component: ResetPasswordPageComponent },
-    { path: 'account', component: AccountPageComponent },
-    { path: 'my-account', component: MyAccountComponent },
+    { path: 'account', component: UserAccountComponent },
     {
         path: 'admin',
         component: AdminLayoutComponent,
         children: [
             { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
             { path: 'dashboard', component: AdminDashboardComponent },
-            { path: 'account', component: AdminAccountComponent }
+            { path: 'account', component: AdminAccountComponent },
+            { path: 'users', component: AdminUsersComponent }
         ]
     },
     { path: '**', redirectTo: 'home' }

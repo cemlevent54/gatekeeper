@@ -66,7 +66,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
                 label: 'Ayarlar',
                 icon: 'pi pi-cog',
                 items: [
-                    { label: 'Profil', icon: 'pi pi-user', routerLink: '/profile' },
+                    { label: 'Profil', icon: 'pi pi-user', routerLink: '/account' },
                     { label: 'Güvenlik', icon: 'pi pi-shield', routerLink: '/security' }
                 ]
             }

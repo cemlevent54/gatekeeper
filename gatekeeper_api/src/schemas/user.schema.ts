@@ -41,6 +41,14 @@ export class User {
     // verifiedAt -> type date or null
     @Prop({ type: Date, default: null })
     verifiedAt: Date | null;
+
+    // lastLoginAt -> type date or null
+    @Prop({ type: Date, default: null })
+    lastLoginAt: Date | null;
+
+    // profileImage -> type string (URL or base64)
+    @Prop({ type: String, default: null })
+    profileImage: string | null;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

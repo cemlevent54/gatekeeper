@@ -7,20 +7,22 @@ import { FileUploadModule } from 'primeng/fileupload';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
+import { UserService, User, UpdateUserRequest } from '../../../services/user.service';
+import { AuthService } from '../../../services/auth.service';
 
 @Component({
-    selector: 'app-admin-account',
-    standalone: true,
-    imports: [
-        CommonModule,
-        FormsModule,
-        InputTextModule,
-        ButtonModule,
-        FileUploadModule,
-        ToastModule,
-        ConfirmDialogModule
-    ],
-    template: `
+  selector: 'app-admin-account',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    InputTextModule,
+    ButtonModule,
+    FileUploadModule,
+    ToastModule,
+    ConfirmDialogModule
+  ],
+  template: `
     <div class="admin-account-container">
       <div class="page-header">
         <h1>Hesap Bilgilerim</h1>
@@ -33,7 +35,7 @@ import { MessageService, ConfirmationService } from 'primeng/api';
           <div class="profile-avatar">
             <div class="avatar-container">
               <img 
-                [src]="profileImage || 'https://via.placeholder.com/120x120/16a34a/ffffff?text=A'" 
+                [src]="userData.profileImage ? (userData.profileImage.startsWith('http') ? userData.profileImage : 'http://localhost:3000' + userData.profileImage) : (profileImage || 'https://via.placeholder.com/120x120/16a34a/ffffff?text=A')" 
                 alt="Admin Profil Resmi" 
                 class="avatar-image"
               />
@@ -122,7 +124,7 @@ import { MessageService, ConfirmationService } from 'primeng/api';
                 <input 
                   pInputText 
                   id="lastLogin" 
-                  [(ngModel)]="userData.lastLogin" 
+                  [value]="userData.lastLoginAt ? (userData.lastLoginAt | date:'dd/MM/yyyy HH:mm') : 'Henüz giriş yapılmamış'" 
                   name="lastLogin"
                   placeholder="Son giriş tarihi"
                   readonly
@@ -218,41 +220,11 @@ import { MessageService, ConfirmationService } from 'primeng/api';
           ></button>
         </div>
         
-        <form class="password-form">
-          <div class="field">
-            <label for="currentPassword">Mevcut Şifre</label>
-            <input 
-              pInputText 
-              id="currentPassword" 
-              type="password"
-              [(ngModel)]="passwordData.currentPassword" 
-              name="currentPassword"
-              placeholder="Mevcut şifrenizi girin"
-            />
-          </div>
-          
-          <div class="field">
-            <label for="newPassword">Yeni Şifre</label>
-            <input 
-              pInputText 
-              id="newPassword" 
-              type="password"
-              [(ngModel)]="passwordData.newPassword" 
-              name="newPassword"
-              placeholder="Yeni şifrenizi girin"
-            />
-          </div>
-          
-          <div class="field">
-            <label for="confirmPassword">Şifre Onayı</label>
-            <input 
-              pInputText 
-              id="confirmPassword" 
-              type="password"
-              [(ngModel)]="passwordData.confirmPassword" 
-              name="confirmPassword"
-              placeholder="Yeni şifrenizi tekrar girin"
-            />
+        <div class="password-form">
+          <div class="info-message">
+            <i class="pi pi-info-circle"></i>
+            <p>Şifrenizi değiştirmek için e-posta adresinize bir şifre sıfırlama linki göndereceğiz.</p>
+            <p><strong>E-posta:</strong> {{ userData.email }}</p>
           </div>
           
           <div class="modal-actions">
@@ -266,20 +238,20 @@ import { MessageService, ConfirmationService } from 'primeng/api';
             <button 
               pButton 
               type="button" 
-              label="Şifreyi Güncelle" 
-              icon="pi pi-save"
+              [label]="isChangingPassword ? 'Gönderiliyor...' : 'Şifre Sıfırlama Linki Gönder'" 
+              icon="pi pi-send"
               (click)="changePassword()"
               [disabled]="isChangingPassword"
             ></button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
 
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>
   `,
-    styles: [`
+  styles: [`
     .admin-account-container {
       max-width: 1000px;
       margin: 0 auto;
@@ -529,6 +501,34 @@ import { MessageService, ConfirmationService } from 'primeng/api';
       padding: 1.5rem;
     }
 
+    .info-message {
+      background: rgba(22, 163, 74, 0.1);
+      border: 1px solid rgba(22, 163, 74, 0.2);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .info-message i {
+      color: #16a34a;
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .info-message p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .info-message p strong {
+      color: #16a34a;
+    }
+
     .modal-actions {
       display: flex;
       gap: 1rem;
@@ -604,139 +604,268 @@ import { MessageService, ConfirmationService } from 'primeng/api';
   `]
 })
 export class AdminAccountComponent implements OnInit {
-    userData = {
-        username: 'admin',
-        email: 'admin@gatekeeper.com',
-        firstName: 'Admin',
-        lastName: 'User',
-        role: 'Super Admin',
-        lastLogin: '2024-01-15 14:30'
-    };
+  userData: User = {
+    id: '',
+    username: '',
+    email: '',
+    firstName: '',
+    lastName: '',
+    role: '',
+    isActive: false,
+    isDeleted: false,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
 
-    passwordData = {
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-    };
+  passwordData = {
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  };
 
-    profileImage: string | null = null;
-    showChangePassword = false;
-    isUpdating = false;
-    isChangingPassword = false;
+  profileImage: string | null = null;
+  showChangePassword = false;
+  isUpdating = false;
+  isChangingPassword = false;
 
-    constructor(
-        private messageService: MessageService,
-        private confirmationService: ConfirmationService
-    ) { }
+  constructor(
+    private messageService: MessageService,
+    private confirmationService: ConfirmationService,
+    private userService: UserService,
+    private authService: AuthService
+  ) { }
 
-    ngOnInit(): void {
-        this.loadAdminData();
-    }
+  ngOnInit(): void {
+    this.loadAdminData();
+  }
 
-    private loadAdminData(): void {
-        // Mock admin verilerini yükle
-        console.log('Admin verileri yüklendi:', this.userData);
-    }
-
-    onImageSelect(event: any): void {
-        const file = event.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e: any) => {
-                this.profileImage = e.target.result;
-                this.messageService.add({
-                    severity: 'success',
-                    summary: 'Başarılı',
-                    detail: 'Admin profil resmi güncellendi'
-                });
-            };
-            reader.readAsDataURL(file);
+  private loadAdminData(): void {
+    const currentUser = this.authService.getCurrentUser();
+    if (currentUser && currentUser.id) {
+      this.userService.getUserById(currentUser.id).subscribe({
+        next: (response) => {
+          if (response.success && response.data) {
+            this.userData = response.data;
+            console.log('Admin verileri yüklendi:', this.userData);
+          }
+        },
+        error: (error) => {
+          console.error('Admin verileri yüklenirken hata:', error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Hata',
+            detail: 'Admin verileri yüklenirken bir hata oluştu'
+          });
         }
+      });
+    } else {
+      console.error('Kullanıcı bilgisi bulunamadı');
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Hata',
+        detail: 'Kullanıcı bilgisi bulunamadı. Lütfen tekrar giriş yapın.'
+      });
     }
+  }
 
-    updateProfile(): void {
-        this.isUpdating = true;
-
-        // Mock güncelleme işlemi
-        setTimeout(() => {
-            this.isUpdating = false;
-            this.messageService.add({
-                severity: 'success',
-                summary: 'Başarılı',
-                detail: 'Admin profil bilgileri güncellendi'
-            });
-        }, 1000);
-    }
-
-    changePassword(): void {
-        if (!this.passwordData.currentPassword || !this.passwordData.newPassword) {
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Hata',
-                detail: 'Tüm alanları doldurun'
-            });
-            return;
-        }
-
-        if (this.passwordData.newPassword !== this.passwordData.confirmPassword) {
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Hata',
-                detail: 'Yeni şifreler eşleşmiyor'
-            });
-            return;
-        }
-
-        this.isChangingPassword = true;
-
-        // Mock şifre değiştirme işlemi
-        setTimeout(() => {
-            this.isChangingPassword = false;
-            this.closeChangePassword();
-            this.messageService.add({
-                severity: 'success',
-                summary: 'Başarılı',
-                detail: 'Admin şifresi başarıyla değiştirildi'
-            });
-        }, 1000);
-    }
-
-    closeChangePassword(): void {
-        this.showChangePassword = false;
-        this.passwordData = {
-            currentPassword: '',
-            newPassword: '',
-            confirmPassword: ''
-        };
-    }
-
-    confirmDeleteAccount(): void {
-        this.confirmationService.confirm({
-            message: 'Admin hesabınızı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve tüm admin yetkilerinizi kaybedeceksiniz.',
-            header: 'Admin Hesap Silme Onayı',
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Evet, Sil',
-            rejectLabel: 'İptal',
-            accept: () => {
-                this.deleteAccount();
-            }
-        });
-    }
-
-    private deleteAccount(): void {
-        // Mock admin hesap silme işlemi
+  onImageSelect(event: any): void {
+    const file = event.files[0];
+    if (file) {
+      // Dosya boyutu kontrolü (5MB)
+      if (file.size > 5 * 1024 * 1024) {
         this.messageService.add({
+          severity: 'error',
+          summary: 'Hata',
+          detail: 'Dosya boyutu 5MB\'dan büyük olamaz'
+        });
+        return;
+      }
+
+      // Dosya tipi kontrolü
+      if (!file.type.match(/\/(jpg|jpeg|png|gif)$/)) {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Hata',
+          detail: 'Sadece resim dosyaları kabul edilir (jpg, jpeg, png, gif)'
+        });
+        return;
+      }
+
+      // FormData ile dosyayı backend'e gönder
+      this.uploadProfileImage(file);
+    }
+  }
+
+  private uploadProfileImage(file: File): void {
+    if (!this.userData.id) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Hata',
+        detail: 'Kullanıcı ID bulunamadı'
+      });
+      return;
+    }
+
+    this.userService.uploadAvatar(this.userData.id, file).subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          this.userData.profileImage = response.data.fileUrl;
+          this.profileImage = response.data.fileUrl;
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Başarılı',
+            detail: 'Profil resmi başarıyla yüklendi'
+          });
+        }
+      },
+      error: (error) => {
+        console.error('Profil resmi yüklenirken hata:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Hata',
+          detail: 'Profil resmi yüklenirken bir hata oluştu'
+        });
+      }
+    });
+  }
+
+  updateProfile(): void {
+    if (!this.userData.id) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Hata',
+        detail: 'Kullanıcı ID bulunamadı'
+      });
+      return;
+    }
+
+    this.isUpdating = true;
+
+    const updateData: UpdateUserRequest = {
+      firstName: this.userData.firstName,
+      lastName: this.userData.lastName,
+      email: this.userData.email
+    };
+
+    this.userService.updateUser(this.userData.id, updateData).subscribe({
+      next: (response) => {
+        this.isUpdating = false;
+        if (response.success && response.data) {
+          this.userData = response.data;
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Başarılı',
+            detail: 'Admin profil bilgileri güncellendi'
+          });
+        }
+      },
+      error: (error) => {
+        this.isUpdating = false;
+        console.error('Profil güncellenirken hata:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Hata',
+          detail: 'Profil güncellenirken bir hata oluştu'
+        });
+      }
+    });
+  }
+
+  changePassword(): void {
+    if (!this.userData.email) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Hata',
+        detail: 'E-posta adresi bulunamadı'
+      });
+      return;
+    }
+
+    this.isChangingPassword = true;
+
+    // Şifre sıfırlama email'i gönder
+    this.authService.forgotPassword(this.userData.email).subscribe({
+      next: (response) => {
+        this.isChangingPassword = false;
+        this.closeChangePassword();
+        if (response.success) {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Başarılı',
+            detail: 'Şifre sıfırlama linki e-posta adresinize gönderildi. Lütfen e-postanızı kontrol edin.'
+          });
+        }
+      },
+      error: (error) => {
+        this.isChangingPassword = false;
+        console.error('Şifre sıfırlama isteği hatası:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Hata',
+          detail: 'Şifre sıfırlama isteği gönderilemedi'
+        });
+      }
+    });
+  }
+
+  closeChangePassword(): void {
+    this.showChangePassword = false;
+    this.passwordData = {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    };
+  }
+
+  confirmDeleteAccount(): void {
+    this.confirmationService.confirm({
+      message: 'Admin hesabınızı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve tüm admin yetkilerinizi kaybedeceksiniz.',
+      header: 'Admin Hesap Silme Onayı',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Evet, Sil',
+      rejectLabel: 'İptal',
+      accept: () => {
+        this.deleteAccount();
+      }
+    });
+  }
+
+  private deleteAccount(): void {
+    if (!this.userData.id) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Hata',
+        detail: 'Kullanıcı ID bulunamadı'
+      });
+      return;
+    }
+
+    this.userService.deleteUser(this.userData.id).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.messageService.add({
             severity: 'warn',
             summary: 'Admin Hesabı Silindi',
             detail: 'Admin hesabınız başarıyla silindi'
-        });
+          });
 
-        // Gerçek uygulamada logout yapın
-        setTimeout(() => {
+          // Logout yap ve login sayfasına yönlendir
+          setTimeout(() => {
+            this.authService.clearTokens();
             if (typeof window !== 'undefined') {
-                localStorage.removeItem('jwt');
-                window.location.href = '/login';
+              window.location.href = '/login';
             }
-        }, 2000);
-    }
+          }, 2000);
+        }
+      },
+      error: (error) => {
+        console.error('Hesap silinirken hata:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Hata',
+          detail: 'Hesap silinirken bir hata oluştu'
+        });
+      }
+    });
+  }
 }

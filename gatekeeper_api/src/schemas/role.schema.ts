@@ -10,6 +10,14 @@ export class Role {
     @Prop({ type: String, required: true, unique: true, trim: true })
     name: string;
 
+    // description -> type string
+    @Prop({ type: String, default: '' })
+    description: string;
+
+    // isActive -> type boolean
+    @Prop({ type: Boolean, default: true })
+    isActive: boolean;
+
     // isDeleted -> type boolean
     @Prop({ type: Boolean, default: false })
     isDeleted: boolean;

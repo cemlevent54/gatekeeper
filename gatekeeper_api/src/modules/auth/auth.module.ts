@@ -29,5 +29,6 @@ import { MailModule } from '../mail/mail.module';
     ],
     controllers: [AuthController],
     providers: [AuthService, RegisterCommandHandler, LoginCommandHandler, JwtService, EmailVerificationService, PasswordResetService, TokenBlacklistService, VerifyEmailCommandHandler, ForgotPasswordCommandHandler, ResetPasswordCommandHandler, LogoutCommandHandler, JwtAuthGuard],
+    exports: [JwtService, JwtAuthGuard, TokenBlacklistService],
 })
 export class AuthModule { }
