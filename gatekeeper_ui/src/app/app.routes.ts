@@ -10,6 +10,9 @@ import { AdminLayoutComponent } from '@layouts/admin-layout/admin-layout.compone
 import { AdminDashboardComponent } from '@pages/admin/dashboard/admin-dashboard.component';
 import { AdminAccountComponent } from '@pages/admin/account/admin-account.component';
 import { AdminUsersComponent } from '@pages/admin/users/admin-users.component';
+import { AdminRolesComponent } from '@pages/admin/roles/admin-roles.component';
+import { RolePermissionsComponent } from '@pages/admin/role-permissions/role-permissions.component';
+import { RolePermissionsListComponent } from '@pages/admin/roles/permissions/role-permissions-list.component';
 
 export const routes: Routes = [
     { path: '', pathMatch: 'full', redirectTo: 'home' },
@@ -27,7 +30,10 @@ export const routes: Routes = [
             { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
             { path: 'dashboard', component: AdminDashboardComponent },
             { path: 'account', component: AdminAccountComponent },
-            { path: 'users', component: AdminUsersComponent }
+            { path: 'users', component: AdminUsersComponent },
+            { path: 'roles', component: AdminRolesComponent },
+            { path: 'roles/permissions', component: RolePermissionsListComponent },
+            { path: 'role-permissions', component: RolePermissionsComponent }
         ]
     },
     { path: '**', redirectTo: 'home' }

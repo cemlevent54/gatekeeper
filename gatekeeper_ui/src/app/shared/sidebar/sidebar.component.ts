@@ -273,6 +273,16 @@ export class SidebarComponent implements OnInit {
         routerLink: '/admin/users'
       },
       {
+        label: 'Roller',
+        icon: 'pi pi-key',
+        routerLink: '/admin/roles'
+      },
+      {
+        label: 'Rol İzinleri',
+        icon: 'pi pi-shield',
+        routerLink: '/admin/role-permissions'
+      },
+      {
         label: 'İçerik Yönetimi',
         icon: 'pi pi-file-edit',
         children: [

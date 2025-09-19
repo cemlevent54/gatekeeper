@@ -61,15 +61,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     private buildMenu(): void {
         const baseItems: MenuItem[] = [
             { label: 'Ana Sayfa', icon: 'pi pi-home', routerLink: '/' },
-            { label: 'Hakkında', icon: 'pi pi-info-circle', routerLink: '/about' },
-            {
-                label: 'Ayarlar',
-                icon: 'pi pi-cog',
-                items: [
-                    { label: 'Profil', icon: 'pi pi-user', routerLink: '/account' },
-                    { label: 'Güvenlik', icon: 'pi pi-shield', routerLink: '/security' }
-                ]
-            }
+            { label: 'Hakkında', icon: 'pi pi-info-circle', routerLink: '/about' }
         ];
 
         // Oturum bagimli eylemler end slot'ta gosteriliyor; sol menude tekrar etmeyelim

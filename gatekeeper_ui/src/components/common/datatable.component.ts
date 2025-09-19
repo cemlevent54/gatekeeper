@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, ContentChild, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -8,37 +8,37 @@ import { TooltipModule } from 'primeng/tooltip';
 import { TagModule } from 'primeng/tag';
 
 export interface DataTableColumn {
-    field: string;
-    header: string;
-    sortable?: boolean;
-    filterable?: boolean;
-    type?: 'text' | 'date' | 'status' | 'actions';
-    width?: string;
-    align?: 'left' | 'center' | 'right';
+  field: string;
+  header: string;
+  sortable?: boolean;
+  filterable?: boolean;
+  type?: 'text' | 'date' | 'status' | 'actions';
+  width?: string;
+  align?: 'left' | 'center' | 'right';
 }
 
 export interface DataTableAction {
-    label: string;
-    icon: string;
-    severity: 'primary' | 'secondary' | 'success' | 'info' | 'warn' | 'danger';
-    tooltip?: string;
-    disabled?: (rowData: any) => boolean;
-    visible?: (rowData: any) => boolean; // Butonun görünürlüğünü kontrol eder
+  label: string;
+  icon: string;
+  severity: 'primary' | 'secondary' | 'success' | 'info' | 'warn' | 'danger';
+  tooltip?: string;
+  disabled?: (rowData: any) => boolean;
+  visible?: (rowData: any) => boolean; // Butonun görünürlüğünü kontrol eder
 }
 
 @Component({
-    selector: 'app-datatable',
-    standalone: true,
-    imports: [
-        CommonModule,
-        TableModule,
-        ButtonModule,
-        InputTextModule,
-        FormsModule,
-        TooltipModule,
-        TagModule
-    ],
-    template: `
+  selector: 'app-datatable',
+  standalone: true,
+  imports: [
+    CommonModule,
+    TableModule,
+    ButtonModule,
+    InputTextModule,
+    FormsModule,
+    TooltipModule,
+    TagModule
+  ],
+  template: `
     <div class="datatable-container">
       <!-- Header -->
       <div class="datatable-header" *ngIf="title || showSearch">
@@ -46,8 +46,9 @@ export interface DataTableAction {
           <h2 *ngIf="title" class="datatable-title">{{ title }}</h2>
           <p *ngIf="subtitle" class="datatable-subtitle">{{ subtitle }}</p>
         </div>
-        <div class="header-right" *ngIf="showSearch">
-          <div class="search-container">
+        <div class="header-right" *ngIf="showSearch || headerActions">
+          <ng-container *ngTemplateOutlet="headerActions"></ng-container>
+          <div class="search-container" *ngIf="showSearch">
             <i class="pi pi-search search-icon"></i>
             <input 
               pInputText 
@@ -158,7 +159,7 @@ export interface DataTableAction {
       </p-table>
     </div>
   `,
-    styles: [`
+  styles: [`
     .datatable-container {
       background: rgba(255, 255, 255, 0.06);
       border: 1px solid rgba(255, 255, 255, 0.08);
@@ -419,101 +420,103 @@ export interface DataTableAction {
   `]
 })
 export class DataTableComponent implements OnInit {
-    @Input() data: any[] = [];
-    @Input() columns: DataTableColumn[] = [];
-    @Input() actions: DataTableAction[] = [];
-    @Input() title?: string;
-    @Input() subtitle?: string;
-    @Input() showSearch: boolean = true;
-    @Input() paginator: boolean = true;
-    @Input() rows: number = 10;
-    @Input() loading: boolean = false;
-    @Input() scrollable: boolean = false;
-    @Input() scrollHeight: string = '400px';
+  @Input() data: any[] = [];
+  @Input() columns: DataTableColumn[] = [];
+  @Input() actions: DataTableAction[] = [];
+  @Input() title?: string;
+  @Input() subtitle?: string;
+  @Input() showSearch: boolean = true;
+  @Input() paginator: boolean = true;
+  @Input() rows: number = 10;
+  @Input() loading: boolean = false;
+  @Input() scrollable: boolean = false;
+  @Input() scrollHeight: string = '400px';
 
-    @Output() actionClick = new EventEmitter<{ action: DataTableAction, rowData: any, rowIndex: number }>();
+  @Output() actionClick = new EventEmitter<{ action: DataTableAction, rowData: any, rowIndex: number }>();
 
-    globalFilterValue: string = '';
-    globalFilterFields: string[] = [];
+  @ContentChild('headerActions', { static: false }) headerActions?: TemplateRef<any>;
 
-    ngOnInit() {
-        // Global filter için sadece text tipindeki kolonları ekle
-        this.globalFilterFields = this.columns
-            .filter(col => col.type === 'text' || !col.type)
-            .map(col => col.field);
+  globalFilterValue: string = '';
+  globalFilterFields: string[] = [];
+
+  ngOnInit() {
+    // Global filter için sadece text tipindeki kolonları ekle
+    this.globalFilterFields = this.columns
+      .filter(col => col.type === 'text' || !col.type)
+      .map(col => col.field);
+  }
+
+  getFieldValue(rowData: any, field: string): any {
+    const value = field.split('.').reduce((obj, key) => obj?.[key], rowData);
+
+    // Eksik alanlar için fallback değerler
+    if (value === undefined || value === null) {
+      switch (field) {
+        case 'firstName':
+        case 'lastName':
+          return '-';
+        case 'lastLoginAt':
+          return null; // Date tipi için null
+        case 'profileImage':
+          return null;
+        default:
+          return value;
+      }
     }
 
-    getFieldValue(rowData: any, field: string): any {
-        const value = field.split('.').reduce((obj, key) => obj?.[key], rowData);
+    return value;
+  }
 
-        // Eksik alanlar için fallback değerler
-        if (value === undefined || value === null) {
-            switch (field) {
-                case 'firstName':
-                case 'lastName':
-                    return '-';
-                case 'lastLoginAt':
-                    return null; // Date tipi için null
-                case 'profileImage':
-                    return null;
-                default:
-                    return value;
-            }
-        }
-
-        return value;
+  getStatusValue(status: any): string {
+    // Boolean değerler için
+    if (typeof status === 'boolean') {
+      return status ? 'Aktif' : 'Pasif';
     }
 
-    getStatusValue(status: any): string {
-        // Boolean değerler için
-        if (typeof status === 'boolean') {
-            return status ? 'Aktif' : 'Pasif';
-        }
-
-        // String değerler için
-        if (typeof status === 'string') {
-            return status;
-        }
-
-        return status?.toString() || '-';
+    // String değerler için
+    if (typeof status === 'string') {
+      return status;
     }
 
-    getStatusSeverity(status: any): string {
-        // Boolean değerler için
-        if (typeof status === 'boolean') {
-            return status ? 'success' : 'danger';
-        }
+    return status?.toString() || '-';
+  }
 
-        // String değerler için
-        if (typeof status === 'string') {
-            switch (status.toLowerCase()) {
-                case 'active':
-                case 'aktif':
-                case 'online':
-                    return 'success';
-                case 'inactive':
-                case 'pasif':
-                case 'offline':
-                    return 'danger';
-                case 'pending':
-                case 'beklemede':
-                    return 'warning';
-                case 'blocked':
-                case 'engellenmiş':
-                    return 'danger';
-                default:
-                    return 'info';
-            }
-        }
-
-        return 'info';
+  getStatusSeverity(status: any): string {
+    // Boolean değerler için
+    if (typeof status === 'boolean') {
+      return status ? 'success' : 'danger';
     }
 
-    onActionClick(action: DataTableAction, rowData: any, rowIndex: number) {
-        this.actionClick.emit({ action, rowData, rowIndex });
+    // String değerler için
+    if (typeof status === 'string') {
+      switch (status.toLowerCase()) {
+        case 'active':
+        case 'aktif':
+        case 'online':
+          return 'success';
+        case 'inactive':
+        case 'pasif':
+        case 'offline':
+          return 'danger';
+        case 'pending':
+        case 'beklemede':
+          return 'warning';
+        case 'blocked':
+        case 'engellenmiş':
+          return 'danger';
+        default:
+          return 'info';
+      }
     }
 
-    onGlobalFilter(event: any) {
-        // Global filter işlemi PrimeNG tarafından otomatik yapılır
-    }
+    return 'info';
+  }
+
+  onActionClick(action: DataTableAction, rowData: any, rowIndex: number) {
+    this.actionClick.emit({ action, rowData, rowIndex });
+  }
+
+  onGlobalFilter(event: any) {
+    // Global filter işlemi PrimeNG tarafından otomatik yapılır
+  }
 }
