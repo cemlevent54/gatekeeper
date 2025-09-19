@@ -1,11 +1,11 @@
-import { IsString, IsBoolean, IsDateString, IsArray } from 'class-validator';
+import { IsString, IsBoolean, IsDateString } from 'class-validator';
 
-export class GetRoleDto {
+export class GetPermissionDto {
     @IsString()
     id: string;
 
     @IsString()
-    name: string;
+    key: string;
 
     @IsString()
     description: string;
@@ -15,9 +15,6 @@ export class GetRoleDto {
 
     @IsBoolean()
     isDeleted: boolean;
-
-    @IsArray()
-    permissions?: any[];
 
     @IsDateString()
     createdAt: Date;

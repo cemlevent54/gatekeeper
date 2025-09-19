@@ -9,10 +9,6 @@ export class CreateRoleDto {
     @IsOptional()
     description?: string;
 
-    @IsString()
-    @IsOptional()
-    permissions?: string;
-
     @IsBoolean()
     @IsOptional()
     isActive?: boolean;

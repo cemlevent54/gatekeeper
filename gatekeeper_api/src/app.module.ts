@@ -7,6 +7,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { MailModule } from './modules/mail/mail.module';
 import { UserModule } from './modules/user/user.module';
 import { RolesModule } from './modules/roles/roles.module';
+import { PermissionModule } from './modules/permissions/permission.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -20,6 +21,7 @@ import { HealthController } from './health/health.controller';
     MailModule,
     UserModule,
     RolesModule,
+    PermissionModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],

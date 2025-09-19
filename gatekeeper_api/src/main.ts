@@ -8,11 +8,19 @@ import { checkAndCreateDatabase, getCorsConfig } from './config';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import { TimezoneUtil } from './common/utils/timezone.util';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
   try {
+    // Timezone ayarını uygula
+    const timezone = process.env.TZ;
+    process.env.TZ = timezone;
+    logger.log(`[Bootstrap] Timezone ayarlandı: ${timezone}`);
+
+    // Timezone bilgilerini logla
+    TimezoneUtil.logTimezoneInfo();
     // Winston logger oluştur - [context][timestamp][level]  -- message
     const logFormat = winston.format.printf(({ level, message, context, timestamp, stack }) => {
       const msg = stack || message;

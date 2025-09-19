@@ -1,29 +1,28 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { DataTableComponent, DataTableColumn, DataTableAction } from '../../../../../components/common/datatable.component';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { InputTextModule } from 'primeng/inputtext';
+import { ButtonModule } from 'primeng/button';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { Router } from '@angular/router';
+import { PermissionsService, Permission } from '../../../../services/permissions.service';
 
-interface Permission {
-    id: string;
-    name: string;
-    description: string;
-    category: string;
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
-}
+// Permission interface'i service'den import ediliyor
 
 @Component({
     selector: 'app-role-permissions-list',
     standalone: true,
     imports: [
         CommonModule,
+        FormsModule,
         DataTableComponent,
         ToastModule,
-        ConfirmDialogModule
+        ConfirmDialogModule,
+        InputTextModule,
+        ButtonModule
     ],
     template: `
     <div class="permissions-container">
@@ -51,6 +50,122 @@ interface Permission {
         [loading]="loading"
         (actionClick)="onActionClick($event)"
       ></app-datatable>
+    </div>
+
+    <!-- Add Permission Modal -->
+    <div class="modal-overlay" *ngIf="showAddModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Yeni İzin Ekle</h3>
+          <button 
+            pButton 
+            type="button" 
+            icon="pi pi-times" 
+            class="p-button-text close-btn"
+            (click)="closeAddModal()"
+          ></button>
+        </div>
+        
+        <form class="add-form" (ngSubmit)="createPermission()">
+          <div class="field">
+            <label for="addKey">İzin Anahtarı</label>
+            <input 
+              pInputText 
+              id="addKey" 
+              [(ngModel)]="newPermission.key" 
+              name="addKey"
+              placeholder="örn: user.create"
+              required
+            />
+          </div>
+
+          <div class="field">
+            <label for="addDescription">Açıklama</label>
+            <input 
+              pInputText 
+              id="addDescription" 
+              [(ngModel)]="newPermission.description" 
+              name="addDescription"
+              placeholder="İzin açıklaması"
+            />
+          </div>
+          
+          <div class="modal-actions">
+            <button 
+              pButton 
+              type="button" 
+              label="İptal" 
+              class="p-button-text"
+              (click)="closeAddModal()"
+            ></button>
+            <button 
+              pButton 
+              type="submit" 
+              label="Oluştur" 
+              icon="pi pi-plus"
+              [disabled]="isCreating || !newPermission.key?.trim()"
+            ></button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Edit Permission Modal -->
+    <div class="modal-overlay" *ngIf="showEditModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>İzin Düzenle</h3>
+          <button 
+            pButton 
+            type="button" 
+            icon="pi pi-times" 
+            class="p-button-text close-btn"
+            (click)="closeEditModal()"
+          ></button>
+        </div>
+        
+        <form class="edit-form" (ngSubmit)="updatePermission()" *ngIf="editingPermission">
+          <div class="field">
+            <label for="editKey">İzin Anahtarı</label>
+            <input 
+              pInputText 
+              id="editKey" 
+              [(ngModel)]="editingPermission.key" 
+              name="editKey"
+              placeholder="örn: user.create"
+              required
+            />
+          </div>
+
+          <div class="field">
+            <label for="editDescription">Açıklama</label>
+            <input 
+              pInputText 
+              id="editDescription" 
+              [(ngModel)]="editingPermission.description" 
+              name="editDescription"
+              placeholder="İzin açıklaması"
+            />
+          </div>
+          
+          <div class="modal-actions">
+            <button 
+              pButton 
+              type="button" 
+              label="İptal" 
+              class="p-button-text"
+              (click)="closeEditModal()"
+            ></button>
+            <button 
+              pButton 
+              type="submit" 
+              label="Güncelle" 
+              icon="pi pi-save"
+              [disabled]="isUpdating"
+            ></button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <p-toast></p-toast>
@@ -97,22 +212,132 @@ interface Permission {
       color: white;
     }
 
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+
+    .modal-content {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(6px);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .close-btn {
+      color: rgba(255, 255, 255, 0.7) !important;
+    }
+
+    .add-form, .edit-form {
+      padding: 1.5rem;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .field label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    :host ::ng-deep .p-inputtext {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+
+    :host ::ng-deep .p-inputtext:focus {
+      border-color: #16a34a;
+      box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: flex-end;
+      margin-top: 2rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .permissions-container {
+        padding: 0.5rem;
+      }
+
+      .modal-content {
+        margin: 1rem;
+      }
+
+      .modal-actions {
+        flex-direction: column;
+      }
+    }
     `]
 })
 export class RolePermissionsListComponent implements OnInit {
     permissions: Permission[] = [];
     loading = false;
 
+    // Modal states
+    showAddModal = false;
+    showEditModal = false;
+    isCreating = false;
+    isUpdating = false;
+
+    // Form data
+    newPermission = {
+        key: '',
+        description: ''
+    };
+    editingPermission: Permission | null = null;
+
     constructor(
         private messageService: MessageService,
         private confirmationService: ConfirmationService,
-        private router: Router
+        private router: Router,
+        private permissionsService: PermissionsService
     ) { }
 
     columns: DataTableColumn[] = [
         {
-            field: 'name',
-            header: 'İzin Adı',
+            field: 'key',
+            header: 'İzin Anahtarı',
             sortable: true,
             filterable: true,
             type: 'text',
@@ -125,14 +350,6 @@ export class RolePermissionsListComponent implements OnInit {
             filterable: true,
             type: 'text',
             width: '300px'
-        },
-        {
-            field: 'category',
-            header: 'Kategori',
-            sortable: true,
-            filterable: true,
-            type: 'text',
-            width: '150px'
         },
         {
             field: 'isActive',
@@ -186,149 +403,31 @@ export class RolePermissionsListComponent implements OnInit {
         this.loading = true;
         console.log('[RolePermissionsListComponent][loadPermissions] İzinler yükleniyor...');
 
-        // Mock data - gerçek uygulamada service'den gelecek
-        setTimeout(() => {
-            this.permissions = [
-                {
-                    id: 'user_create',
-                    name: 'Kullanıcı Oluştur',
-                    description: 'Yeni kullanıcı hesapları oluşturabilir',
-                    category: 'Kullanıcı Yönetimi',
-                    isActive: true,
-                    createdAt: '2024-01-01T00:00:00.000Z',
-                    updatedAt: '2024-01-01T00:00:00.000Z'
-                },
-                {
-                    id: 'user_read',
-                    name: 'Kullanıcı Görüntüle',
-                    description: 'Kullanıcı bilgilerini görüntüleyebilir',
-                    category: 'Kullanıcı Yönetimi',
-                    isActive: true,
-                    createdAt: '2024-01-01T00:00:00.000Z',
-                    updatedAt: '2024-01-01T00:00:00.000Z'
-                },
-                {
-                    id: 'user_update',
-                    name: 'Kullanıcı Güncelle',
-                    description: 'Kullanıcı bilgilerini güncelleyebilir',
-                    category: 'Kullanıcı Yönetimi',
-                    isActive: true,
-                    createdAt: '2024-01-01T00:00:00.000Z',
-                    updatedAt: '2024-01-01T00:00:00.000Z'
-                },
-                {
-                    id: 'user_delete',
-                    name: 'Kullanıcı Sil',
-                    description: 'Kullanıcı hesaplarını silebilir',
-                    category: 'Kullanıcı Yönetimi',
-                    isActive: true,
-                    createdAt: '2024-01-01T00:00:00.000Z',
-                    updatedAt: '2024-01-01T00:00:00.000Z'
-                },
-                {
-                    id: 'role_create',
-                    name: 'Rol Oluştur',
-                    description: 'Yeni roller oluşturabilir',
-                    category: 'Rol Yönetimi',
-                    isActive: true,
-                    createdAt: '2024-01-01T00:00:00.000Z',
-                    updatedAt: '2024-01-01T00:00:00.000Z'
-                },
-                {
-                    id: 'role_read',
-                    name: 'Rol Görüntüle',
-                    description: 'Rol bilgilerini görüntüleyebilir',
-                    category: 'Rol Yönetimi',
-                    isActive: true,
-                    createdAt: '2024-01-01T00:00:00.000Z',
-                    updatedAt: '2024-01-01T00:00:00.000Z'
-                },
-                {
-                    id: 'role_update',
-                    name: 'Rol Güncelle',
-                    description: 'Rol bilgilerini güncelleyebilir',
-                    category: 'Rol Yönetimi',
-                    isActive: true,
-                    createdAt: '2024-01-01T00:00:00.000Z',
-                    updatedAt: '2024-01-01T00:00:00.000Z'
-                },
-                {
-                    id: 'role_delete',
-                    name: 'Rol Sil',
-                    description: 'Rolleri silebilir',
-                    category: 'Rol Yönetimi',
-                    isActive: true,
-                    createdAt: '2024-01-01T00:00:00.000Z',
-                    updatedAt: '2024-01-01T00:00:00.000Z'
-                },
-                {
-                    id: 'content_create',
-                    name: 'İçerik Oluştur',
-                    description: 'Yeni içerik oluşturabilir',
-                    category: 'İçerik Yönetimi',
-                    isActive: true,
-                    createdAt: '2024-01-01T00:00:00.000Z',
-                    updatedAt: '2024-01-01T00:00:00.000Z'
-                },
-                {
-                    id: 'content_read',
-                    name: 'İçerik Görüntüle',
-                    description: 'İçerikleri görüntüleyebilir',
-                    category: 'İçerik Yönetimi',
-                    isActive: true,
-                    createdAt: '2024-01-01T00:00:00.000Z',
-                    updatedAt: '2024-01-01T00:00:00.000Z'
-                },
-                {
-                    id: 'content_update',
-                    name: 'İçerik Güncelle',
-                    description: 'İçerikleri güncelleyebilir',
-                    category: 'İçerik Yönetimi',
-                    isActive: true,
-                    createdAt: '2024-01-01T00:00:00.000Z',
-                    updatedAt: '2024-01-01T00:00:00.000Z'
-                },
-                {
-                    id: 'content_delete',
-                    name: 'İçerik Sil',
-                    description: 'İçerikleri silebilir',
-                    category: 'İçerik Yönetimi',
-                    isActive: true,
-                    createdAt: '2024-01-01T00:00:00.000Z',
-                    updatedAt: '2024-01-01T00:00:00.000Z'
-                },
-                {
-                    id: 'system_settings',
-                    name: 'Sistem Ayarları',
-                    description: 'Sistem ayarlarını değiştirebilir',
-                    category: 'Sistem Yönetimi',
-                    isActive: true,
-                    createdAt: '2024-01-01T00:00:00.000Z',
-                    updatedAt: '2024-01-01T00:00:00.000Z'
-                },
-                {
-                    id: 'logs_view',
-                    name: 'Log Görüntüle',
-                    description: 'Sistem loglarını görüntüleyebilir',
-                    category: 'Sistem Yönetimi',
-                    isActive: true,
-                    createdAt: '2024-01-01T00:00:00.000Z',
-                    updatedAt: '2024-01-01T00:00:00.000Z'
-                },
-                {
-                    id: 'permission_manage',
-                    name: 'İzin Yönetimi',
-                    description: 'Sistem izinlerini yönetebilir',
-                    category: 'Sistem Yönetimi',
-                    isActive: false,
-                    createdAt: '2024-01-01T00:00:00.000Z',
-                    updatedAt: '2024-01-01T00:00:00.000Z'
+        this.permissionsService.getAllPermissions().subscribe({
+            next: (response) => {
+                this.loading = false;
+                if (response.success && response.data) {
+                    this.permissions = response.data;
+                    console.log('[RolePermissionsListComponent][loadPermissions] İzinler yüklendi:', this.permissions.length);
+                } else {
+                    console.error('[RolePermissionsListComponent][loadPermissions] API başarısız:', response);
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Hata',
+                        detail: 'İzinler yüklenirken bir hata oluştu'
+                    });
                 }
-            ];
-
-            this.loading = false;
-            console.log('[RolePermissionsListComponent][loadPermissions] İzinler yüklendi:', this.permissions.length);
-        }, 1000);
+            },
+            error: (error) => {
+                this.loading = false;
+                console.error('[RolePermissionsListComponent][loadPermissions] Hata:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Hata',
+                    detail: 'İzinler yüklenirken bir hata oluştu'
+                });
+            }
+        });
     }
 
     onActionClick(event: { action: DataTableAction, rowData: Permission, rowIndex: number }): void {
@@ -349,18 +448,14 @@ export class RolePermissionsListComponent implements OnInit {
     private editPermission(permission: Permission): void {
         console.log('[RolePermissionsListComponent][editPermission] İzin düzenleniyor:', permission);
 
-        // Mock edit işlemi
-        this.messageService.add({
-            severity: 'info',
-            summary: 'Bilgi',
-            detail: `${permission.name} izni düzenleme özelliği yakında eklenecek`
-        });
+        this.editingPermission = { ...permission };
+        this.showEditModal = true;
     }
 
     private deletePermission(permission: Permission): void {
         this.confirmationService.confirm({
-            message: `"${permission.name}" iznini silmek istediğinizden emin misiniz?`,
-            header: 'İzin Silme Onayı',
+            message: `"${permission.key}" iznini pasif hale getirmek istediğinizden emin misiniz?`,
+            header: 'İzin Pasifleştirme Onayı',
             icon: 'pi pi-exclamation-triangle',
             acceptLabel: 'Evet',
             rejectLabel: 'Hayır',
@@ -371,29 +466,138 @@ export class RolePermissionsListComponent implements OnInit {
     }
 
     private performDeletePermission(permission: Permission): void {
-        // Mock delete işlemi
-        const index = this.permissions.findIndex(p => p.id === permission.id);
-        if (index > -1) {
-            this.permissions[index].isActive = false;
-        }
+        // İzni pasif hale getir (soft delete)
+        this.permissionsService.updatePermission(permission.id, {
+            isActive: false
+        }).subscribe({
+            next: (response) => {
+                if (response.success && response.data) {
+                    // Listede güncelle
+                    const index = this.permissions.findIndex(p => p.id === permission.id);
+                    if (index > -1) {
+                        this.permissions[index] = response.data;
+                    }
 
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Başarılı',
-            detail: `${permission.name} izni başarıyla pasif hale getirildi`
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Başarılı',
+                        detail: `${permission.key} izni başarıyla pasif hale getirildi`
+                    });
+                }
+            },
+            error: (error) => {
+                console.error('İzin pasifleştirilirken hata:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Hata',
+                    detail: 'İzin pasifleştirilirken bir hata oluştu'
+                });
+            }
         });
     }
 
     addPermission(): void {
-        // Mock add işlemi
-        this.messageService.add({
-            severity: 'info',
-            summary: 'Bilgi',
-            detail: 'Yeni izin ekleme özelliği yakında eklenecek'
-        });
+        this.newPermission = { key: '', description: '' };
+        this.showAddModal = true;
     }
 
     goToMatrix(): void {
         this.router.navigate(['/admin/role-permissions']);
+    }
+
+    // Modal methods
+    closeAddModal(): void {
+        this.showAddModal = false;
+        this.newPermission = { key: '', description: '' };
+        this.isCreating = false;
+    }
+
+    closeEditModal(): void {
+        this.showEditModal = false;
+        this.editingPermission = null;
+        this.isUpdating = false;
+    }
+
+    createPermission(): void {
+        if (!this.newPermission.key?.trim()) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Uyarı',
+                detail: 'İzin anahtarı gereklidir'
+            });
+            return;
+        }
+
+        this.isCreating = true;
+
+        this.permissionsService.createPermission({
+            key: this.newPermission.key.trim(),
+            description: this.newPermission.description?.trim() || '',
+            isActive: true
+        }).subscribe({
+            next: (response) => {
+                this.isCreating = false;
+                if (response.success && response.data) {
+                    // Listeye yeni izni ekle
+                    this.permissions.unshift(response.data);
+
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Başarılı',
+                        detail: 'Yeni izin başarıyla oluşturuldu'
+                    });
+
+                    this.closeAddModal();
+                }
+            },
+            error: (error) => {
+                this.isCreating = false;
+                console.error('İzin oluşturulurken hata:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Hata',
+                    detail: 'İzin oluşturulurken bir hata oluştu'
+                });
+            }
+        });
+    }
+
+    updatePermission(): void {
+        if (!this.editingPermission) return;
+
+        this.isUpdating = true;
+
+        this.permissionsService.updatePermission(this.editingPermission.id, {
+            key: this.editingPermission.key,
+            description: this.editingPermission.description
+        }).subscribe({
+            next: (response) => {
+                this.isUpdating = false;
+                if (response.success && response.data) {
+                    // Listede güncelle
+                    const index = this.permissions.findIndex(p => p.id === this.editingPermission!.id);
+                    if (index > -1) {
+                        this.permissions[index] = response.data;
+                    }
+
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Başarılı',
+                        detail: 'İzin başarıyla güncellendi'
+                    });
+
+                    this.closeEditModal();
+                }
+            },
+            error: (error) => {
+                this.isUpdating = false;
+                console.error('İzin güncellenirken hata:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Hata',
+                    detail: 'İzin güncellenirken bir hata oluştu'
+                });
+            }
+        });
     }
 }

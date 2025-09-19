@@ -32,7 +32,7 @@ export class CreateRoleHandler implements ICommandHandler<CreateRoleCommand> {
             const newRole = new this.roleModel({
                 name: createRoleDto.name,
                 description: createRoleDto.description || '',
-                permissions: createRoleDto.permissions || '',
+                permissions: [], // Boş array olarak başlat
                 isActive: createRoleDto.isActive !== undefined ? createRoleDto.isActive : true,
                 isDeleted: false,
                 userCount: 0,

@@ -1,10 +1,18 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
+import { TimezoneUtil } from '../common/utils/timezone.util';
 
 
 export type UserDocument = HydratedDocument<User>;
 
-@Schema({ timestamps: true, id: true })
+@Schema({
+    timestamps: {
+        createdAt: 'createdAt',
+        updatedAt: 'updatedAt',
+        currentTime: () => TimezoneUtil.getMongoTimestamp()
+    },
+    id: true
+})
 export class User {
     // username -> type string
     @Prop({ type: String, required: true, unique: true, trim: true })

@@ -16,6 +16,7 @@ import { ForgotPasswordCommandHandler } from './cqrs/commands/handlers/forgotpas
 import { ResetPasswordCommandHandler } from './cqrs/commands/handlers/resetpasswordcommand.handler';
 import { LogoutCommandHandler } from './cqrs/commands/handlers/logoutcommand.handler';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
 import { MailModule } from '../mail/mail.module';
 
 @Module({
@@ -28,7 +29,7 @@ import { MailModule } from '../mail/mail.module';
         MailModule,
     ],
     controllers: [AuthController],
-    providers: [AuthService, RegisterCommandHandler, LoginCommandHandler, JwtService, EmailVerificationService, PasswordResetService, TokenBlacklistService, VerifyEmailCommandHandler, ForgotPasswordCommandHandler, ResetPasswordCommandHandler, LogoutCommandHandler, JwtAuthGuard],
-    exports: [JwtService, JwtAuthGuard, TokenBlacklistService],
+    providers: [AuthService, RegisterCommandHandler, LoginCommandHandler, JwtService, EmailVerificationService, PasswordResetService, TokenBlacklistService, VerifyEmailCommandHandler, ForgotPasswordCommandHandler, ResetPasswordCommandHandler, LogoutCommandHandler, JwtAuthGuard, RolesGuard],
+    exports: [JwtService, JwtAuthGuard, RolesGuard, TokenBlacklistService],
 })
 export class AuthModule { }

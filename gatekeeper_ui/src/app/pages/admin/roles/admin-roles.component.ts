@@ -12,19 +12,19 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { RolesService, Role, CreateRoleDto, UpdateRoleDto } from '../../../services/roles.service';
 
 @Component({
-    selector: 'app-admin-roles',
-    standalone: true,
-    imports: [
-        CommonModule,
-        FormsModule,
-        DataTableComponent,
-        ToastModule,
-        ConfirmDialogModule,
-        InputTextModule,
-        ButtonModule,
-        SelectModule
-    ],
-    template: `
+  selector: 'app-admin-roles',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    DataTableComponent,
+    ToastModule,
+    ConfirmDialogModule,
+    InputTextModule,
+    ButtonModule,
+    SelectModule
+  ],
+  template: `
     <div class="admin-roles-container">
       <!-- Page Header with Actions -->
       <div class="page-header">
@@ -101,16 +101,6 @@ import { RolesService, Role, CreateRoleDto, UpdateRoleDto } from '../../../servi
           </div>
 
           <div class="form-row">
-            <div class="field">
-              <label for="editPermissions">İzinler</label>
-              <input 
-                pInputText 
-                id="editPermissions" 
-                [(ngModel)]="editingRole.permissions" 
-                name="editPermissions"
-                placeholder="İzinler (virgülle ayırın)"
-              />
-            </div>
             <div class="field">
               <label for="editIsActive">Durum</label>
               <p-select 
@@ -198,7 +188,7 @@ import { RolesService, Role, CreateRoleDto, UpdateRoleDto } from '../../../servi
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>
   `,
-    styles: [`
+  styles: [`
     .admin-roles-container {
       max-width: 1400px;
       margin: 0 auto;
@@ -417,342 +407,332 @@ import { RolesService, Role, CreateRoleDto, UpdateRoleDto } from '../../../servi
   `]
 })
 export class AdminRolesComponent implements OnInit {
-    roles: Role[] = [];
-    loading = false;
-    showEditModal = false;
-    showAddModal = false;
-    editingRole: Role | null = null;
-    isUpdating = false;
-    isAdding = false;
-    newRoleName = '';
+  roles: Role[] = [];
+  loading = false;
+  showEditModal = false;
+  showAddModal = false;
+  editingRole: Role | null = null;
+  isUpdating = false;
+  isAdding = false;
+  newRoleName = '';
 
-    statusOptions = [
-        { label: 'Aktif', value: true },
-        { label: 'Pasif', value: false }
-    ];
+  statusOptions = [
+    { label: 'Aktif', value: true },
+    { label: 'Pasif', value: false }
+  ];
 
-    constructor(
-        private messageService: MessageService,
-        private confirmationService: ConfirmationService,
-        private rolesService: RolesService,
-        private router: Router
-    ) { }
+  constructor(
+    private messageService: MessageService,
+    private confirmationService: ConfirmationService,
+    private rolesService: RolesService,
+    private router: Router
+  ) { }
 
-    columns: DataTableColumn[] = [
-        {
-            field: 'name',
-            header: 'Rol Adı',
-            sortable: true,
-            filterable: true,
-            type: 'text',
-            width: '200px'
-        },
-        {
-            field: 'description',
-            header: 'Açıklama',
-            sortable: true,
-            filterable: true,
-            type: 'text',
-            width: '300px'
-        },
-        {
-            field: 'permissions',
-            header: 'İzinler',
-            sortable: false,
-            filterable: false,
-            type: 'text',
-            width: '200px'
-        },
-        {
-            field: 'userCount',
-            header: 'Kullanıcı Sayısı',
-            sortable: true,
-            filterable: false,
-            type: 'text',
-            width: '150px',
-            align: 'center'
-        },
-        {
-            field: 'isActive',
-            header: 'Durum',
-            sortable: true,
-            filterable: true,
-            type: 'status',
-            width: '120px',
-            align: 'center'
-        },
-        {
-            field: 'createdAt',
-            header: 'Oluşturulma',
-            sortable: true,
-            filterable: false,
-            type: 'date',
-            width: '150px'
-        },
-        {
-            field: 'actions',
-            header: 'İşlemler',
-            sortable: false,
-            filterable: false,
-            type: 'actions',
-            width: '120px',
-            align: 'center'
+  columns: DataTableColumn[] = [
+    {
+      field: 'name',
+      header: 'Rol Adı',
+      sortable: true,
+      filterable: true,
+      type: 'text',
+      width: '200px'
+    },
+    {
+      field: 'description',
+      header: 'Açıklama',
+      sortable: true,
+      filterable: true,
+      type: 'text',
+      width: '300px'
+    },
+    {
+      field: 'userCount',
+      header: 'Kullanıcı Sayısı',
+      sortable: true,
+      filterable: false,
+      type: 'text',
+      width: '150px',
+      align: 'center'
+    },
+    {
+      field: 'isActive',
+      header: 'Durum',
+      sortable: true,
+      filterable: true,
+      type: 'status',
+      width: '120px',
+      align: 'center'
+    },
+    {
+      field: 'createdAt',
+      header: 'Oluşturulma',
+      sortable: true,
+      filterable: false,
+      type: 'date',
+      width: '150px'
+    },
+    {
+      field: 'actions',
+      header: 'İşlemler',
+      sortable: false,
+      filterable: false,
+      type: 'actions',
+      width: '120px',
+      align: 'center'
+    }
+  ];
+
+  actions: DataTableAction[] = [
+    {
+      label: 'Düzenle',
+      icon: 'pi pi-pencil',
+      severity: 'primary',
+      tooltip: 'Rolü düzenle'
+    },
+    {
+      label: 'Sil',
+      icon: 'pi pi-trash',
+      severity: 'danger',
+      tooltip: 'Rolü sil',
+      disabled: (rowData: Role) => rowData.userCount > 0
+    }
+  ];
+
+  ngOnInit(): void {
+    this.loadRoles();
+  }
+
+  loadRoles(): void {
+    this.loading = true;
+    console.log('[AdminRolesComponent][loadRoles] Roller yükleniyor...');
+
+    this.rolesService.getAllRoles().subscribe({
+      next: (response) => {
+        console.log('[AdminRolesComponent][loadRoles] API yanıtı:', response);
+        if (response.success && response.data) {
+          this.roles = response.data;
+          console.log('[AdminRolesComponent][loadRoles] Roller yüklendi:', this.roles.length);
+        } else {
+          console.warn('[AdminRolesComponent][loadRoles] API başarısız:', response.message);
+          this.roles = [];
         }
-    ];
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('[AdminRolesComponent][loadRoles] Hata:', error);
+        this.roles = [];
+        this.loading = false;
 
-    actions: DataTableAction[] = [
-        {
-            label: 'Düzenle',
-            icon: 'pi pi-pencil',
-            severity: 'primary',
-            tooltip: 'Rolü düzenle'
-        },
-        {
-            label: 'Sil',
-            icon: 'pi pi-trash',
-            severity: 'danger',
-            tooltip: 'Rolü sil',
-            disabled: (rowData: Role) => rowData.userCount > 0
+        // Hata durumunda kullanıcıya bilgi ver
+        if (error.status === 401) {
+          alert('Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.');
+        } else {
+          alert('Roller yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.');
         }
-    ];
+      }
+    });
+  }
 
-    ngOnInit(): void {
-        this.loadRoles();
+  onActionClick(event: { action: DataTableAction, rowData: Role, rowIndex: number }): void {
+    const { action, rowData, rowIndex } = event;
+
+    switch (action.label) {
+      case 'Düzenle':
+        this.editRole(rowData);
+        break;
+      case 'Sil':
+        this.deleteRole(rowData);
+        break;
+      default:
+        console.log('Bilinmeyen aksiyon:', action.label);
+    }
+  }
+
+  private editRole(role: Role): void {
+    console.log('[AdminRolesComponent][editRole] Rol düzenleniyor:', role);
+
+    this.editingRole = { ...role }; // Deep copy
+    this.showEditModal = true;
+  }
+
+  private deleteRole(role: Role): void {
+    if (role.userCount > 0) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Uyarı',
+        detail: 'Bu rolü kullanan kullanıcılar olduğu için silinemez!'
+      });
+      return;
     }
 
-    loadRoles(): void {
-        this.loading = true;
-        console.log('[AdminRolesComponent][loadRoles] Roller yükleniyor...');
+    this.confirmationService.confirm({
+      message: `"${role.name}" rolünü silmek istediğinizden emin misiniz?`,
+      header: 'Rol Silme Onayı',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Evet',
+      rejectLabel: 'Hayır',
+      accept: () => {
+        this.performDeleteRole(role);
+      }
+    });
+  }
 
-        this.rolesService.getAllRoles().subscribe({
-            next: (response) => {
-                console.log('[AdminRolesComponent][loadRoles] API yanıtı:', response);
-                if (response.success && response.data) {
-                    this.roles = response.data;
-                    console.log('[AdminRolesComponent][loadRoles] Roller yüklendi:', this.roles.length);
-                } else {
-                    console.warn('[AdminRolesComponent][loadRoles] API başarısız:', response.message);
-                    this.roles = [];
-                }
-                this.loading = false;
-            },
-            error: (error) => {
-                console.error('[AdminRolesComponent][loadRoles] Hata:', error);
-                this.roles = [];
-                this.loading = false;
+  private performDeleteRole(role: Role): void {
+    this.rolesService.deleteRole(role.id).subscribe({
+      next: (response) => {
+        if (response.success) {
+          // Listeden rolü kaldır
+          const index = this.roles.findIndex(r => r.id === role.id);
+          if (index > -1) {
+            this.roles.splice(index, 1);
+          }
 
-                // Hata durumunda kullanıcıya bilgi ver
-                if (error.status === 401) {
-                    alert('Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.');
-                } else {
-                    alert('Roller yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.');
-                }
-            }
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Başarılı',
+            detail: `${role.name} rolü başarıyla silindi`
+          });
+        } else {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Hata',
+            detail: 'Rol silinemedi: ' + response.message
+          });
+        }
+      },
+      error: (error) => {
+        console.error('Rol silinirken hata:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Hata',
+          detail: 'Rol silinirken bir hata oluştu'
         });
-    }
+      }
+    });
+  }
 
-    onActionClick(event: { action: DataTableAction, rowData: Role, rowIndex: number }): void {
-        const { action, rowData, rowIndex } = event;
+  closeEditModal(): void {
+    this.showEditModal = false;
+    this.editingRole = null;
+    this.isUpdating = false;
+  }
 
-        switch (action.label) {
-            case 'Düzenle':
-                this.editRole(rowData);
-                break;
-            case 'Sil':
-                this.deleteRole(rowData);
-                break;
-            default:
-                console.log('Bilinmeyen aksiyon:', action.label);
-        }
-    }
+  openAddModal(): void {
+    this.newRoleName = '';
+    this.showAddModal = true;
+  }
 
-    private editRole(role: Role): void {
-        console.log('[AdminRolesComponent][editRole] Rol düzenleniyor:', role);
+  closeAddModal(): void {
+    this.showAddModal = false;
+    this.newRoleName = '';
+    this.isAdding = false;
+  }
 
-        this.editingRole = { ...role }; // Deep copy
-        this.showEditModal = true;
-    }
+  updateRole(): void {
+    if (!this.editingRole) return;
 
-    private deleteRole(role: Role): void {
-        if (role.userCount > 0) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Uyarı',
-                detail: 'Bu rolü kullanan kullanıcılar olduğu için silinemez!'
-            });
-            return;
-        }
+    this.isUpdating = true;
 
-        this.confirmationService.confirm({
-            message: `"${role.name}" rolünü silmek istediğinizden emin misiniz?`,
-            header: 'Rol Silme Onayı',
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Evet',
-            rejectLabel: 'Hayır',
-            accept: () => {
-                this.performDeleteRole(role);
-            }
-        });
-    }
+    const updateData: UpdateRoleDto = {
+      name: this.editingRole.name,
+      description: this.editingRole.description,
+      isActive: this.editingRole.isActive
+    };
 
-    private performDeleteRole(role: Role): void {
-        this.rolesService.deleteRole(role.id).subscribe({
-            next: (response) => {
-                if (response.success) {
-                    // Listeden rolü kaldır
-                    const index = this.roles.findIndex(r => r.id === role.id);
-                    if (index > -1) {
-                        this.roles.splice(index, 1);
-                    }
+    console.log('Güncellenecek veri:', updateData);
 
-                    this.messageService.add({
-                        severity: 'success',
-                        summary: 'Başarılı',
-                        detail: `${role.name} rolü başarıyla silindi`
-                    });
-                } else {
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Hata',
-                        detail: 'Rol silinemedi: ' + response.message
-                    });
-                }
-            },
-            error: (error) => {
-                console.error('Rol silinirken hata:', error);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Hata',
-                    detail: 'Rol silinirken bir hata oluştu'
-                });
-            }
-        });
-    }
-
-    closeEditModal(): void {
-        this.showEditModal = false;
-        this.editingRole = null;
+    this.rolesService.updateRole(this.editingRole.id, updateData).subscribe({
+      next: (response) => {
         this.isUpdating = false;
-    }
+        if (response.success && response.data) {
+          // Listede rolü güncelle
+          const index = this.roles.findIndex(r => r.id === this.editingRole!.id);
+          if (index > -1) {
+            this.roles[index] = response.data;
+          }
 
-    openAddModal(): void {
-        this.newRoleName = '';
-        this.showAddModal = true;
-    }
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Başarılı',
+            detail: `${this.editingRole!.name} rolü başarıyla güncellendi`
+          });
 
-    closeAddModal(): void {
-        this.showAddModal = false;
-        this.newRoleName = '';
-        this.isAdding = false;
-    }
-
-    updateRole(): void {
-        if (!this.editingRole) return;
-
-        this.isUpdating = true;
-
-        const updateData: UpdateRoleDto = {
-            name: this.editingRole.name,
-            description: this.editingRole.description,
-            permissions: this.editingRole.permissions,
-            isActive: this.editingRole.isActive
-        };
-
-        console.log('Güncellenecek veri:', updateData);
-
-        this.rolesService.updateRole(this.editingRole.id, updateData).subscribe({
-            next: (response) => {
-                this.isUpdating = false;
-                if (response.success && response.data) {
-                    // Listede rolü güncelle
-                    const index = this.roles.findIndex(r => r.id === this.editingRole!.id);
-                    if (index > -1) {
-                        this.roles[index] = response.data;
-                    }
-
-                    this.messageService.add({
-                        severity: 'success',
-                        summary: 'Başarılı',
-                        detail: `${this.editingRole!.name} rolü başarıyla güncellendi`
-                    });
-
-                    this.closeEditModal();
-                } else {
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Hata',
-                        detail: 'Rol güncellenemedi: ' + response.message
-                    });
-                }
-            },
-            error: (error) => {
-                this.isUpdating = false;
-                console.error('Rol güncellenirken hata:', error);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Hata',
-                    detail: 'Rol güncellenirken bir hata oluştu'
-                });
-            }
-        });
-    }
-
-    addRole(): void {
-        if (!this.newRoleName?.trim()) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Uyarı',
-                detail: 'Lütfen rol adını girin'
-            });
-            return;
+          this.closeEditModal();
+        } else {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Hata',
+            detail: 'Rol güncellenemedi: ' + response.message
+          });
         }
-
-        this.isAdding = true;
-
-        const newRole = {
-            name: this.newRoleName.trim(),
-            description: '',
-            permissions: '',
-            isActive: true
-        };
-
-        console.log('Yeni rol ekleniyor:', newRole);
-
-        this.rolesService.createRole(newRole).subscribe({
-            next: (response) => {
-                this.isAdding = false;
-                if (response.success && response.data) {
-                    // Listeye yeni rolü ekle
-                    this.roles.push(response.data);
-
-                    this.messageService.add({
-                        severity: 'success',
-                        summary: 'Başarılı',
-                        detail: `${newRole.name} rolü başarıyla eklendi`
-                    });
-
-                    this.closeAddModal();
-                } else {
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Hata',
-                        detail: 'Rol eklenemedi: ' + (response.message || 'Bilinmeyen hata')
-                    });
-                }
-            },
-            error: (error) => {
-                this.isAdding = false;
-                console.error('Rol eklenirken hata:', error);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Hata',
-                    detail: 'Rol eklenirken bir hata oluştu'
-                });
-            }
+      },
+      error: (error) => {
+        this.isUpdating = false;
+        console.error('Rol güncellenirken hata:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Hata',
+          detail: 'Rol güncellenirken bir hata oluştu'
         });
+      }
+    });
+  }
+
+  addRole(): void {
+    if (!this.newRoleName?.trim()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Uyarı',
+        detail: 'Lütfen rol adını girin'
+      });
+      return;
     }
 
-    goToPermissions(): void {
-        this.router.navigate(['/admin/roles/permissions']);
-    }
+    this.isAdding = true;
+
+    const newRole = {
+      name: this.newRoleName.trim(),
+      description: '',
+      isActive: true
+    };
+
+    console.log('Yeni rol ekleniyor:', newRole);
+
+    this.rolesService.createRole(newRole).subscribe({
+      next: (response) => {
+        this.isAdding = false;
+        if (response.success && response.data) {
+          // Listeye yeni rolü ekle
+          this.roles.push(response.data);
+
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Başarılı',
+            detail: `${newRole.name} rolü başarıyla eklendi`
+          });
+
+          this.closeAddModal();
+        } else {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Hata',
+            detail: 'Rol eklenemedi: ' + (response.message || 'Bilinmeyen hata')
+          });
+        }
+      },
+      error: (error) => {
+        this.isAdding = false;
+        console.error('Rol eklenirken hata:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Hata',
+          detail: 'Rol eklenirken bir hata oluştu'
+        });
+      }
+    });
+  }
+
+  goToPermissions(): void {
+    this.router.navigate(['/admin/roles/permissions']);
+  }
 }

@@ -22,6 +22,16 @@ export const getDatabaseConfig = (configService: ConfigService): DatabaseConfig 
         throw new Error('MongoDB konfigürasyon değişkenleri eksik. Lütfen .env dosyasını kontrol edin.');
     }
 
+    // Timezone ayarını kontrol et ve uygula
+    const timezone = configService.get<string>('TZ');
+    process.env.TZ = timezone;
+
+    // Node.js timezone ayarını uygula
+    if (timezone) {
+        process.env.TZ = timezone;
+        console.log(`[DatabaseConfig] Timezone ayarlandı: ${timezone}`);
+    }
+
     // MongoDB bağlantı URI'sini oluştur
     const uri = `mongodb://${username}:${password}@${host}:${port}/${database}?authSource=admin`;
 

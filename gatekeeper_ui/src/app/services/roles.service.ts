@@ -30,14 +30,12 @@ export interface RoleResponse {
 export interface CreateRoleDto {
     name: string;
     description?: string;
-    permissions?: string;
     isActive?: boolean;
 }
 
 export interface UpdateRoleDto {
     name?: string;
     description?: string;
-    permissions?: string;
     isActive?: boolean;
 }
 

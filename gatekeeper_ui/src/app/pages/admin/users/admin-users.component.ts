@@ -13,19 +13,19 @@ import { AuthService } from '../../../services/auth.service';
 import { RolesService, Role } from '../../../services/roles.service';
 
 @Component({
-    selector: 'app-admin-users',
-    standalone: true,
-    imports: [
-        CommonModule,
-        FormsModule,
-        DataTableComponent,
-        ToastModule,
-        ConfirmDialogModule,
-        InputTextModule,
-        ButtonModule,
-        SelectModule
-    ],
-    template: `
+  selector: 'app-admin-users',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    DataTableComponent,
+    ToastModule,
+    ConfirmDialogModule,
+    InputTextModule,
+    ButtonModule,
+    SelectModule
+  ],
+  template: `
     <div class="admin-users-container">
       <app-datatable
         [data]="users"
@@ -42,8 +42,8 @@ import { RolesService, Role } from '../../../services/roles.service';
     </div>
 
     <!-- Edit User Modal -->
-    <div class="modal-overlay" *ngIf="showEditModal" (click)="closeEditModal()">
-      <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-overlay" *ngIf="showEditModal">
+      <div class="modal-content">
         <div class="modal-header">
           <h3>Kullanıcı Düzenle</h3>
           <button 
@@ -156,7 +156,7 @@ import { RolesService, Role } from '../../../services/roles.service';
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>
   `,
-    styles: [`
+  styles: [`
     .admin-users-container {
       max-width: 1400px;
       margin: 0 auto;
@@ -187,6 +187,7 @@ import { RolesService, Role } from '../../../services/roles.service';
       max-width: 600px;
       max-height: 90vh;
       overflow-y: auto;
+      position: relative;
     }
 
     .modal-header {
@@ -321,10 +322,16 @@ import { RolesService, Role } from '../../../services/roles.service';
         background: rgba(0, 0, 0, 0.95) !important;
         border: 1px solid rgba(34, 197, 94, 0.3) !important;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+        z-index: 9999 !important; /* Çok yüksek z-index */
+        max-height: 200px !important; /* Dropdown yüksekliğini artır */
+        overflow-y: auto !important; /* Scroll ekle */
+        position: fixed !important; /* Fixed positioning */
       }
       
       .p-select-items {
         background: transparent !important;
+        max-height: 180px !important; /* Items container yüksekliği */
+        overflow-y: auto !important; /* Items için scroll */
       }
       
       .p-select-item {
@@ -342,352 +349,362 @@ import { RolesService, Role } from '../../../services/roles.service';
         color: #22c55e !important;
       }
     }
+
+    /* Dropdown scroll event'lerini modal'dan izole et */
+    :host ::ng-deep .p-select-panel {
+      pointer-events: auto !important;
+    }
+    
+    :host ::ng-deep .p-select-panel * {
+      pointer-events: auto !important;
+    }
+    
+    /* Modal içindeki dropdown scroll'u engelle */
+    .modal-content {
+      overflow: visible !important;
+    }
+    
+    .edit-form {
+      overflow: visible !important;
+    }
   `]
 })
 export class AdminUsersComponent implements OnInit {
-    users: User[] = [];
-    roles: Role[] = [];
-    loading = false;
-    showEditModal = false;
-    editingUser: User | null = null;
-    isUpdating = false;
+  users: User[] = [];
+  roles: Role[] = [];
+  loading = false;
+  showEditModal = false;
+  editingUser: User | null = null;
+  isUpdating = false;
 
-    statusOptions = [
-        { label: 'Aktif', value: true },
-        { label: 'Pasif', value: false }
-    ];
+  statusOptions = [
+    { label: 'Aktif', value: true },
+    { label: 'Pasif', value: false }
+  ];
 
-    roleOptions: { label: string; value: string }[] = [];
+  roleOptions: { label: string; value: string }[] = [];
 
-    columns: DataTableColumn[] = [
-        {
-            field: 'username',
-            header: 'Kullanıcı Adı',
-            sortable: true,
-            filterable: true,
-            type: 'text',
-            width: '150px'
-        },
-        {
-            field: 'email',
-            header: 'E-posta',
-            sortable: true,
-            filterable: true,
-            type: 'text',
-            width: '200px'
-        },
-        {
-            field: 'firstName',
-            header: 'Ad',
-            sortable: true,
-            filterable: true,
-            type: 'text',
-            width: '120px'
-        },
-        {
-            field: 'lastName',
-            header: 'Soyad',
-            sortable: true,
-            filterable: true,
-            type: 'text',
-            width: '120px'
-        },
-        {
-            field: 'role',
-            header: 'Rol',
-            sortable: true,
-            filterable: true,
-            type: 'text',
-            width: '100px'
-        },
-        {
-            field: 'isActive',
-            header: 'Durum',
-            sortable: true,
-            type: 'status',
-            width: '100px',
-            align: 'center'
-        },
-        {
-            field: 'lastLoginAt',
-            header: 'Son Giriş',
-            sortable: true,
-            type: 'date',
-            width: '150px'
-        },
-        {
-            field: 'createdAt',
-            header: 'Kayıt Tarihi',
-            sortable: true,
-            type: 'date',
-            width: '150px'
-        },
-        {
-            field: 'actions',
-            header: 'İşlemler',
-            type: 'actions',
-            width: '150px',
-            align: 'center'
+  columns: DataTableColumn[] = [
+    {
+      field: 'username',
+      header: 'Kullanıcı Adı',
+      sortable: true,
+      filterable: true,
+      type: 'text',
+      width: '150px'
+    },
+    {
+      field: 'email',
+      header: 'E-posta',
+      sortable: true,
+      filterable: true,
+      type: 'text',
+      width: '200px'
+    },
+    {
+      field: 'firstName',
+      header: 'Ad',
+      sortable: true,
+      filterable: true,
+      type: 'text',
+      width: '120px'
+    },
+    {
+      field: 'lastName',
+      header: 'Soyad',
+      sortable: true,
+      filterable: true,
+      type: 'text',
+      width: '120px'
+    },
+    {
+      field: 'role',
+      header: 'Rol',
+      sortable: true,
+      filterable: true,
+      type: 'text',
+      width: '100px'
+    },
+    {
+      field: 'isActive',
+      header: 'Durum',
+      sortable: true,
+      type: 'status',
+      width: '100px',
+      align: 'center'
+    },
+    {
+      field: 'lastLoginAt',
+      header: 'Son Giriş',
+      sortable: true,
+      type: 'date',
+      width: '150px'
+    },
+    {
+      field: 'createdAt',
+      header: 'Kayıt Tarihi',
+      sortable: true,
+      type: 'date',
+      width: '150px'
+    },
+    {
+      field: 'actions',
+      header: 'İşlemler',
+      type: 'actions',
+      width: '150px',
+      align: 'center'
+    }
+  ];
+
+  actions: DataTableAction[] = [
+    {
+      label: 'Görüntüle',
+      icon: 'pi pi-eye',
+      severity: 'info',
+      tooltip: 'Kullanıcı detaylarını görüntüle',
+      visible: (rowData: User) => true // Her zaman görünür
+    },
+    {
+      label: 'Düzenle',
+      icon: 'pi pi-pencil',
+      severity: 'primary',
+      tooltip: 'Kullanıcıyı düzenle',
+      visible: (rowData: User) => {
+        // Sadece admin kullanıcılar düzenleyebilir
+        return rowData.role === 'admin' || rowData.role === 'user';
+      }
+    },
+    {
+      label: 'Sil',
+      icon: 'pi pi-trash',
+      severity: 'danger',
+      tooltip: 'Kullanıcıyı sil',
+      visible: (rowData: User) => {
+        // Kendi hesabını silemez
+        const currentUser = this.getCurrentUser();
+        if (!currentUser) return false;
+
+        // Kendi hesabını silemez
+        return currentUser.id !== rowData.id;
+      }
+    }
+  ];
+
+  constructor(
+    private messageService: MessageService,
+    private confirmationService: ConfirmationService,
+    private userService: UserService,
+    private authService: AuthService,
+    private rolesService: RolesService
+  ) { }
+
+  ngOnInit(): void {
+    this.loadUsers();
+    this.loadRoles();
+  }
+
+  private getCurrentUser(): any {
+    return this.authService.getCurrentUser();
+  }
+
+  private loadUsers(): void {
+    this.loading = true;
+
+    this.userService.getAllUsers().subscribe({
+      next: (response) => {
+        this.loading = false;
+        if (response.success && response.data) {
+          this.users = response.data;
+          console.log('Kullanıcılar yüklendi:', this.users);
+          console.log('İlk kullanıcı detayı:', this.users[0]);
         }
-    ];
-
-    actions: DataTableAction[] = [
-        {
-            label: 'Görüntüle',
-            icon: 'pi pi-eye',
-            severity: 'info',
-            tooltip: 'Kullanıcı detaylarını görüntüle',
-            visible: (rowData: User) => true // Her zaman görünür
-        },
-        {
-            label: 'Düzenle',
-            icon: 'pi pi-pencil',
-            severity: 'primary',
-            tooltip: 'Kullanıcıyı düzenle',
-            visible: (rowData: User) => {
-                // Sadece admin kullanıcılar düzenleyebilir
-                return rowData.role === 'admin' || rowData.role === 'user';
-            }
-        },
-        {
-            label: 'Sil',
-            icon: 'pi pi-trash',
-            severity: 'danger',
-            tooltip: 'Kullanıcıyı sil',
-            visible: (rowData: User) => {
-                // Kendi hesabını silemez
-                const currentUser = this.getCurrentUser();
-                if (!currentUser) return false;
-
-                // Kendi hesabını silemez
-                return currentUser.id !== rowData.id;
-            }
-        }
-    ];
-
-    constructor(
-        private messageService: MessageService,
-        private confirmationService: ConfirmationService,
-        private userService: UserService,
-        private authService: AuthService,
-        private rolesService: RolesService
-    ) { }
-
-    ngOnInit(): void {
-        this.loadUsers();
-        this.loadRoles();
-    }
-
-    private getCurrentUser(): any {
-        return this.authService.getCurrentUser();
-    }
-
-    private loadUsers(): void {
-        this.loading = true;
-
-        this.userService.getAllUsers().subscribe({
-            next: (response) => {
-                this.loading = false;
-                if (response.success && response.data) {
-                    this.users = response.data;
-                    console.log('Kullanıcılar yüklendi:', this.users);
-                    console.log('İlk kullanıcı detayı:', this.users[0]);
-                }
-            },
-            error: (error) => {
-                this.loading = false;
-                console.error('Kullanıcılar yüklenirken hata:', error);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Hata',
-                    detail: 'Kullanıcılar yüklenirken bir hata oluştu'
-                });
-            }
-        });
-    }
-
-    private loadRoles(): void {
-        console.log('loadRoles çağrıldı');
-        this.rolesService.getAllRoles().subscribe({
-            next: (response) => {
-                if (response.success && response.data) {
-                    this.roles = response.data;
-                    // Role options'ı güncelle
-                    // isActive undefined ise true kabul et (eski roller için)
-                    this.roleOptions = this.roles
-                        .filter(role => {
-                            const isActive = role.isActive !== false; // undefined veya true ise aktif
-                            const notDeleted = !role.isDeleted;
-                            console.log(`Role ${role.name}: isActive=${role.isActive}, isDeleted=${role.isDeleted}, filtered=${isActive && notDeleted}`);
-                            return isActive && notDeleted;
-                        })
-                        .map(role => ({
-                            label: role.name,
-                            value: role.id
-                        }));
-                    console.log('Roller yüklendi:', this.roles);
-                    console.log('Role options:', this.roleOptions);
-                    console.log('Role options length:', this.roleOptions.length);
-                } else {
-                    console.log('Roles API başarısız veya data yok:', response);
-                }
-            },
-            error: (error) => {
-                console.error('Roller yüklenirken hata:', error);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Hata',
-                    detail: 'Roller yüklenirken bir hata oluştu'
-                });
-            }
-        });
-    }
-
-
-    onActionClick(event: { action: DataTableAction, rowData: User, rowIndex: number }): void {
-        const { action, rowData, rowIndex } = event;
-
-        switch (action.label) {
-            case 'Görüntüle':
-                this.viewUser(rowData);
-                break;
-            case 'Düzenle':
-                this.editUser(rowData);
-                break;
-            case 'Sil':
-                this.deleteUser(rowData);
-                break;
-        }
-    }
-
-    private viewUser(user: User): void {
+      },
+      error: (error) => {
+        this.loading = false;
+        console.error('Kullanıcılar yüklenirken hata:', error);
         this.messageService.add({
-            severity: 'info',
-            summary: 'Kullanıcı Detayları',
-            detail: `${user.username} kullanıcısının detayları görüntüleniyor...`
+          severity: 'error',
+          summary: 'Hata',
+          detail: 'Kullanıcılar yüklenirken bir hata oluştu'
         });
+      }
+    });
+  }
 
-        // TODO: Kullanıcı detay modal'ı açılacak
-        console.log('View user:', user);
-    }
-
-    private editUser(user: User): void {
-        console.log('editUser çağrıldı:', user);
-        console.log('Mevcut roller:', this.roles);
-        console.log('Role options:', this.roleOptions);
-
-        this.editingUser = { ...user }; // Deep copy
-
-        // Kullanıcının mevcut rolünün ID'sini bul ve set et
-        if (user.role) {
-            const currentRole = this.roles.find(role => role.name === user.role);
-            console.log('Kullanıcının mevcut rolü:', user.role);
-            console.log('Bulunan rol:', currentRole);
-            if (currentRole) {
-                this.editingUser.role = currentRole.id;
-                console.log('Editing user role set edildi:', this.editingUser.role);
-            }
+  private loadRoles(): void {
+    console.log('loadRoles çağrıldı');
+    this.rolesService.getAllRoles().subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          this.roles = response.data;
+          // Role options'ı güncelle - tüm rolleri göster
+          this.roleOptions = this.roles.map(role => ({
+            label: role.name,
+            value: role.id
+          }));
+          console.log('Roller yüklendi:', this.roles);
+          console.log('Role options:', this.roleOptions);
+          console.log('Role options length:', this.roleOptions.length);
+        } else {
+          console.log('Roles API başarısız veya data yok:', response);
         }
-
-        this.showEditModal = true;
-    }
-
-
-    private deleteUser(user: User): void {
-        this.confirmationService.confirm({
-            message: `"${user.username}" kullanıcısını silmek istediğinizden emin misiniz?`,
-            header: 'Kullanıcı Silme Onayı',
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Evet',
-            rejectLabel: 'Hayır',
-            accept: () => {
-                this.performDeleteUser(user);
-            }
+      },
+      error: (error) => {
+        console.error('Roller yüklenirken hata:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Hata',
+          detail: 'Roller yüklenirken bir hata oluştu'
         });
+      }
+    });
+  }
+
+
+  onActionClick(event: { action: DataTableAction, rowData: User, rowIndex: number }): void {
+    const { action, rowData, rowIndex } = event;
+
+    switch (action.label) {
+      case 'Görüntüle':
+        this.viewUser(rowData);
+        break;
+      case 'Düzenle':
+        this.editUser(rowData);
+        break;
+      case 'Sil':
+        this.deleteUser(rowData);
+        break;
+    }
+  }
+
+  private viewUser(user: User): void {
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Kullanıcı Detayları',
+      detail: `${user.username} kullanıcısının detayları görüntüleniyor...`
+    });
+
+    // TODO: Kullanıcı detay modal'ı açılacak
+    console.log('View user:', user);
+  }
+
+  private editUser(user: User): void {
+    console.log('editUser çağrıldı:', user);
+    console.log('Mevcut roller:', this.roles);
+    console.log('Role options:', this.roleOptions);
+
+    this.editingUser = { ...user }; // Deep copy
+
+    // Kullanıcının mevcut rolünün ID'sini bul ve set et
+    if (user.role) {
+      const currentRole = this.roles.find(role => role.name === user.role);
+      console.log('Kullanıcının mevcut rolü:', user.role);
+      console.log('Bulunan rol:', currentRole);
+      if (currentRole) {
+        this.editingUser.role = currentRole.id;
+        console.log('Editing user role set edildi:', this.editingUser.role);
+      }
     }
 
-    private performDeleteUser(user: User): void {
-        this.userService.deleteUser(user.id).subscribe({
-            next: (response) => {
-                if (response.success) {
-                    // Listeden kullanıcıyı kaldır
-                    const index = this.users.findIndex(u => u.id === user.id);
-                    if (index > -1) {
-                        this.users.splice(index, 1);
-                    }
+    this.showEditModal = true;
+  }
 
-                    this.messageService.add({
-                        severity: 'success',
-                        summary: 'Başarılı',
-                        detail: `${user.username} kullanıcısı başarıyla silindi`
-                    });
-                }
-            },
-            error: (error) => {
-                console.error('Kullanıcı silinirken hata:', error);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Hata',
-                    detail: 'Kullanıcı silinirken bir hata oluştu'
-                });
-            }
+
+  private deleteUser(user: User): void {
+    this.confirmationService.confirm({
+      message: `"${user.username}" kullanıcısını silmek istediğinizden emin misiniz?`,
+      header: 'Kullanıcı Silme Onayı',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Evet',
+      rejectLabel: 'Hayır',
+      accept: () => {
+        this.performDeleteUser(user);
+      }
+    });
+  }
+
+  private performDeleteUser(user: User): void {
+    this.userService.deleteUser(user.id).subscribe({
+      next: (response) => {
+        if (response.success) {
+          // Listeden kullanıcıyı kaldır
+          const index = this.users.findIndex(u => u.id === user.id);
+          if (index > -1) {
+            this.users.splice(index, 1);
+          }
+
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Başarılı',
+            detail: `${user.username} kullanıcısı başarıyla silindi`
+          });
+        }
+      },
+      error: (error) => {
+        console.error('Kullanıcı silinirken hata:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Hata',
+          detail: 'Kullanıcı silinirken bir hata oluştu'
         });
-    }
+      }
+    });
+  }
 
-    closeEditModal(): void {
-        this.showEditModal = false;
-        this.editingUser = null;
+  closeEditModal(): void {
+    this.showEditModal = false;
+    this.editingUser = null;
+    this.isUpdating = false;
+  }
+
+  updateUser(): void {
+    if (!this.editingUser) return;
+
+    this.isUpdating = true;
+
+    // Role ID'sini bul
+    const selectedRole = this.roles.find(role => role.id === this.editingUser!.role);
+    const roleName = selectedRole ? selectedRole.name : this.editingUser.role;
+
+    const updateData = {
+      firstName: this.editingUser.firstName,
+      lastName: this.editingUser.lastName,
+      email: this.editingUser.email,
+      isActive: this.editingUser.isActive,
+      role: roleName // Role name'i gönder (backend'de role ID'ye çevrilecek)
+    };
+
+    console.log('Güncellenecek veri:', updateData);
+    console.log('Seçilen rol:', selectedRole);
+
+    this.userService.updateUser(this.editingUser.id, updateData).subscribe({
+      next: (response) => {
         this.isUpdating = false;
-    }
+        if (response.success && response.data) {
+          // Listede kullanıcıyı güncelle
+          const index = this.users.findIndex(u => u.id === this.editingUser!.id);
+          if (index > -1) {
+            this.users[index] = response.data;
+          }
 
-    updateUser(): void {
-        if (!this.editingUser) return;
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Başarılı',
+            detail: `${this.editingUser!.username} kullanıcısı başarıyla güncellendi`
+          });
 
-        this.isUpdating = true;
-
-        // Role ID'sini bul
-        const selectedRole = this.roles.find(role => role.id === this.editingUser!.role);
-        const roleName = selectedRole ? selectedRole.name : this.editingUser.role;
-
-        const updateData = {
-            firstName: this.editingUser.firstName,
-            lastName: this.editingUser.lastName,
-            email: this.editingUser.email,
-            isActive: this.editingUser.isActive,
-            role: roleName // Role name'i gönder (backend'de role ID'ye çevrilecek)
-        };
-
-        console.log('Güncellenecek veri:', updateData);
-        console.log('Seçilen rol:', selectedRole);
-
-        this.userService.updateUser(this.editingUser.id, updateData).subscribe({
-            next: (response) => {
-                this.isUpdating = false;
-                if (response.success && response.data) {
-                    // Listede kullanıcıyı güncelle
-                    const index = this.users.findIndex(u => u.id === this.editingUser!.id);
-                    if (index > -1) {
-                        this.users[index] = response.data;
-                    }
-
-                    this.messageService.add({
-                        severity: 'success',
-                        summary: 'Başarılı',
-                        detail: `${this.editingUser!.username} kullanıcısı başarıyla güncellendi`
-                    });
-
-                    this.closeEditModal();
-                }
-            },
-            error: (error) => {
-                this.isUpdating = false;
-                console.error('Kullanıcı güncellenirken hata:', error);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Hata',
-                    detail: 'Kullanıcı güncellenirken bir hata oluştu'
-                });
-            }
+          this.closeEditModal();
+        }
+      },
+      error: (error) => {
+        this.isUpdating = false;
+        console.error('Kullanıcı güncellenirken hata:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Hata',
+          detail: 'Kullanıcı güncellenirken bir hata oluştu'
         });
-    }
+      }
+    });
+  }
 }
