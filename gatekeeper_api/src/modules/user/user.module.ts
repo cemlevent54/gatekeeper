@@ -9,7 +9,9 @@ import { UpdateUserCommandHandler } from './cqrs/commands/handlers/updateusercom
 import { DeleteUserCommandHandler } from './cqrs/commands/handlers/deleteusercommand.handler';
 import { User, UserSchema } from '../../schemas/user.schema';
 import { Role, RoleSchema } from '../../schemas/role.schema';
+import { Permission, PermissionSchema } from '../../schemas/permission.schema';
 import { AuthModule } from '../auth/auth.module';
+import { PermissionsGuard } from '../../common/guards/permissions.guard';
 
 @Module({
     imports: [
@@ -17,6 +19,7 @@ import { AuthModule } from '../auth/auth.module';
         MongooseModule.forFeature([
             { name: User.name, schema: UserSchema },
             { name: Role.name, schema: RoleSchema },
+            { name: Permission.name, schema: PermissionSchema },
         ]),
         AuthModule,
     ],
@@ -27,6 +30,7 @@ import { AuthModule } from '../auth/auth.module';
         GetUserCommandHandler,
         UpdateUserCommandHandler,
         DeleteUserCommandHandler,
+        PermissionsGuard,
     ],
     exports: [UserService],
 })

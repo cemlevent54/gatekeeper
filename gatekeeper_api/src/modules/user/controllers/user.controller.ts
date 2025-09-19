@@ -9,14 +9,17 @@ import { UpdateUserCommand } from '../cqrs/commands/impl/updateusercommand.impl'
 import { DeleteUserCommand } from '../cqrs/commands/impl/deleteusercommand.impl';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../../../common/guards/permissions.guard';
+import { Permissions } from '../../../common/decorators/permissions.decorator';
 import { ApiResponse } from '../../../common/interfaces/api-response.interface';
 import type { Response } from 'express';
 
 @Controller('user')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class UserController {
     constructor(private readonly commandBus: CommandBus) { }
 
+    @Permissions('user.view')
     @Get()
     async getAllUsers(
         @Request() req: any,
@@ -42,6 +45,7 @@ export class UserController {
         }
     }
 
+    @Permissions('user.view')
     @Get(':id')
     async getUserById(
         @Param('id') userId: string,
@@ -69,6 +73,7 @@ export class UserController {
         }
     }
 
+    @Permissions('user.edit')
     @Patch(':id')
     async updateUser(
         @Param('id') userId: string,
@@ -98,6 +103,7 @@ export class UserController {
         }
     }
 
+    @Permissions('user.delete')
     @Delete(':id')
     async deleteUser(
         @Param('id') userId: string,
@@ -125,6 +131,7 @@ export class UserController {
         }
     }
 
+    @Permissions('user.edit')
     @Post(':id/upload-avatar')
     @UseInterceptors(FileInterceptor('profileImage', {
         storage: diskStorage({
