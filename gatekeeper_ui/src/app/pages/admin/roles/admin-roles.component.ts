@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { DataTableComponent, DataTableColumn, DataTableAction } from '../../../../components/common/datatable.component';
+import { UnauthorizedModalComponent } from '../../../shared/alerts/unauthorizedModal.component';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -22,7 +23,8 @@ import { RolesService, Role, CreateRoleDto, UpdateRoleDto } from '../../../servi
     ConfirmDialogModule,
     InputTextModule,
     ButtonModule,
-    SelectModule
+    SelectModule,
+    UnauthorizedModalComponent
   ],
   template: `
     <div class="admin-roles-container">
@@ -185,6 +187,8 @@ import { RolesService, Role, CreateRoleDto, UpdateRoleDto } from '../../../servi
       </div>
     </div>
 
+    <app-unauthorized-modal [(visible)]="showUnauthorizedModal" [message]="unauthorizedMessage"></app-unauthorized-modal>
+
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>
   `,
@@ -332,6 +336,17 @@ import { RolesService, Role, CreateRoleDto, UpdateRoleDto } from '../../../servi
       margin-top: 2rem;
     }
 
+    /* Unauthorized modal */
+    .modal-body.unauthorized {
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .modal-body.unauthorized i {
+      font-size: 2rem;
+      color: #ef4444;
+      margin-bottom: 0.75rem;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
       .admin-roles-container {
@@ -415,6 +430,9 @@ export class AdminRolesComponent implements OnInit {
   isUpdating = false;
   isAdding = false;
   newRoleName = '';
+
+  showUnauthorizedModal = false;
+  unauthorizedMessage = 'Bu sayfayı görüntülemek için role.view yetkisi gerekir.';
 
   statusOptions = [
     { label: 'Aktif', value: true },
@@ -523,12 +541,17 @@ export class AdminRolesComponent implements OnInit {
         this.roles = [];
         this.loading = false;
 
-        // Hata durumunda kullanıcıya bilgi ver
-        if (error.status === 401) {
-          alert('Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.');
-        } else {
-          alert('Roller yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.');
+        if (error.status === 401 || error.status === 403) {
+          this.unauthorizedMessage = error?.error?.message || 'Bu sayfayı görüntülemek için role.view yetkisi gerekir.';
+          this.showUnauthorizedModal = true;
+          return;
         }
+
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Hata',
+          detail: 'Roller yüklenirken bir hata oluştu'
+        });
       }
     });
   }

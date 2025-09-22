@@ -156,6 +156,8 @@ import { PermissionsService, RolePermissionMatrix, RoleMatrixItem, PermissionMat
 
     .matrix-table {
         width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     .matrix-header {
@@ -176,6 +178,7 @@ import { PermissionsService, RolePermissionMatrix, RoleMatrixItem, PermissionMat
     .roles-header {
         display: flex;
         flex: 1;
+        min-width: 480px;
     }
 
     .role-header {
@@ -204,6 +207,7 @@ import { PermissionsService, RolePermissionMatrix, RoleMatrixItem, PermissionMat
     .permission-rows {
         max-height: 600px;
         overflow-y: auto;
+        overflow-x: auto;
     }
 
     .permission-row {
@@ -224,6 +228,7 @@ import { PermissionsService, RolePermissionMatrix, RoleMatrixItem, PermissionMat
         flex: 0 0 300px;
         padding: 1rem;
         border-right: 1px solid rgba(255, 255, 255, 0.1);
+        min-width: 240px;
     }
 
     .permission-key {
@@ -242,6 +247,7 @@ import { PermissionsService, RolePermissionMatrix, RoleMatrixItem, PermissionMat
     .permission-checkboxes {
         display: flex;
         flex: 1;
+        min-width: 480px;
     }
 
     .checkbox-cell {
@@ -310,7 +316,7 @@ import { PermissionsService, RolePermissionMatrix, RoleMatrixItem, PermissionMat
 
 
     /* Responsive */
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
         .role-permissions-container {
             padding: 0.5rem;
         }
@@ -319,13 +325,9 @@ import { PermissionsService, RolePermissionMatrix, RoleMatrixItem, PermissionMat
             font-size: 2rem;
         }
 
-        .permission-header {
-            flex: 0 0 200px;
-        }
+        .permission-header { flex: 0 0 200px; }
 
-        .permission-info {
-            flex: 0 0 200px;
-        }
+        .permission-info { flex: 0 0 200px; min-width: 200px; }
 
         .role-name {
             font-size: 0.9rem;
@@ -339,9 +341,18 @@ import { PermissionsService, RolePermissionMatrix, RoleMatrixItem, PermissionMat
             font-size: 0.9rem;
         }
 
-        .permission-description {
-            font-size: 0.75rem;
-        }
+        .permission-description { font-size: 0.75rem; }
+
+        .roles-header { min-width: 360px; }
+        .permission-checkboxes { min-width: 360px; }
+    }
+
+    @media (max-width: 640px) {
+        .permission-header { flex: 0 0 160px; }
+        .permission-info { flex: 0 0 160px; min-width: 160px; }
+        .roles-header { min-width: 320px; }
+        .permission-checkboxes { min-width: 320px; }
+        .checkbox-cell { padding: 0.5rem; }
     }
     `]
 })

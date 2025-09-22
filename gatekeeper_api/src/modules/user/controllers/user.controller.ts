@@ -2,11 +2,7 @@ import { Controller, Get, Patch, Delete, Param, Body, UseGuards, Request, Valida
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
-import { CommandBus } from '@nestjs/cqrs';
-import { GetAllUsersCommand } from '../cqrs/commands/impl/getalluserscommand.impl';
-import { GetUserCommand } from '../cqrs/commands/impl/getusercommand.impl';
-import { UpdateUserCommand } from '../cqrs/commands/impl/updateusercommand.impl';
-import { DeleteUserCommand } from '../cqrs/commands/impl/deleteusercommand.impl';
+import { UserService } from '../services/user.service';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
@@ -17,7 +13,7 @@ import type { Response } from 'express';
 @Controller('user')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class UserController {
-    constructor(private readonly commandBus: CommandBus) { }
+    constructor(private readonly userService: UserService) { }
 
     @Permissions('user.view')
     @Get()
@@ -26,9 +22,9 @@ export class UserController {
         @Res() res: Response
     ) {
         try {
-            const users = await this.commandBus.execute(new GetAllUsersCommand(
+            const users = await this.userService.getAllUsers(
                 req.user.sub
-            ));
+            );
 
             return res.status(HttpStatus.OK).json({
                 success: true,
@@ -53,10 +49,10 @@ export class UserController {
         @Res() res: Response
     ) {
         try {
-            const user = await this.commandBus.execute(new GetUserCommand(
+            const user = await this.userService.getUserById(
                 userId,
                 req.user.sub
-            ));
+            );
 
             return res.status(HttpStatus.OK).json({
                 success: true,
@@ -82,11 +78,11 @@ export class UserController {
         @Res() res: Response
     ) {
         try {
-            const updatedUser = await this.commandBus.execute(new UpdateUserCommand(
+            const updatedUser = await this.userService.updateUser(
                 userId,
                 updateUserDto,
                 req.user.sub
-            ));
+            );
 
             return res.status(HttpStatus.OK).json({
                 success: true,
@@ -111,10 +107,10 @@ export class UserController {
         @Res() res: Response
     ) {
         try {
-            const result = await this.commandBus.execute(new DeleteUserCommand(
+            const result = await this.userService.deleteUser(
                 userId,
                 req.user.sub
-            ));
+            );
 
             return res.status(HttpStatus.OK).json({
                 success: true,
@@ -173,11 +169,11 @@ export class UserController {
 
             // Kullanıcının profil resmini güncelle
             const updateData = { profileImage: fileUrl };
-            const updatedUser = await this.commandBus.execute(new UpdateUserCommand(
+            const updatedUser = await this.userService.updateUser(
                 userId,
-                updateData,
+                updateData as any,
                 req.user.sub
-            ));
+            );
 
             return res.status(HttpStatus.OK).json({
                 success: true,

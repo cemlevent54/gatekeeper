@@ -1,23 +1,22 @@
 import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, ValidationPipe, HttpStatus, Res } from '@nestjs/common';
-import { CommandBus } from '@nestjs/cqrs';
-import { GetAllRolesCommand } from '../cqrs/commands/impl/getallrolescommand.impl';
-import { CreateRoleCommand } from '../cqrs/commands/impl/createrolecommand.impl';
-import { UpdateRoleCommand } from '../cqrs/commands/impl/updaterolecommand.impl';
-import { DeleteRoleCommand } from '../cqrs/commands/impl/deleterolecommand.impl';
 import { CreateRoleDto } from '../dto/create-role.dto';
 import { UpdateRoleDto } from '../dto/update-role.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import type { Response } from 'express';
+import { RolesService } from '../services/roles.service';
+import { PermissionsGuard } from '../../../common/guards/permissions.guard';
+import { Permissions } from '../../../common/decorators/permissions.decorator';
 
 @Controller('roles')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class RolesController {
-    constructor(private readonly commandBus: CommandBus) { }
+    constructor(private readonly rolesService: RolesService) { }
 
+    @Permissions('role.view', 'role.*')
     @Get()
     async getAllRoles(@Res() res: Response) {
         try {
-            const roles = await this.commandBus.execute(new GetAllRolesCommand());
+            const roles = await this.rolesService.getAllRoles();
             return res.status(HttpStatus.OK).json({
                 success: true,
                 message: 'Roller başarıyla getirildi',
@@ -33,13 +32,14 @@ export class RolesController {
         }
     }
 
+    @Permissions('role.create', 'role.*')
     @Post()
     async createRole(
         @Body(new ValidationPipe()) createRoleDto: CreateRoleDto,
         @Res() res: Response
     ) {
         try {
-            const newRole = await this.commandBus.execute(new CreateRoleCommand(createRoleDto));
+            const newRole = await this.rolesService.createRole(createRoleDto);
             return res.status(HttpStatus.CREATED).json({
                 success: true,
                 message: 'Rol başarıyla oluşturuldu',
@@ -55,6 +55,7 @@ export class RolesController {
         }
     }
 
+    @Permissions('role.update', 'role.*')
     @Patch(':id')
     async updateRole(
         @Param('id') roleId: string,
@@ -62,10 +63,10 @@ export class RolesController {
         @Res() res: Response
     ) {
         try {
-            const updatedRole = await this.commandBus.execute(new UpdateRoleCommand(
+            const updatedRole = await this.rolesService.updateRole(
                 roleId,
                 updateRoleDto
-            ));
+            );
             return res.status(HttpStatus.OK).json({
                 success: true,
                 message: 'Rol başarıyla güncellendi',
@@ -81,13 +82,14 @@ export class RolesController {
         }
     }
 
+    @Permissions('role.delete', 'role.*')
     @Delete(':id')
     async deleteRole(
         @Param('id') roleId: string,
         @Res() res: Response
     ) {
         try {
-            const result = await this.commandBus.execute(new DeleteRoleCommand(roleId));
+            const result = await this.rolesService.deleteRole(roleId);
             return res.status(HttpStatus.OK).json({
                 success: true,
                 message: result.message,

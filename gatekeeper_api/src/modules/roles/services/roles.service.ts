@@ -1,20 +1,46 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Role, RoleDocument } from '../../../schemas/role.schema';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { GetRoleDto } from '../dto/get-role.dto';
 import { UpdateRoleDto } from '../dto/update-role.dto';
+import { RoleRepository } from '../repositories/role.repository';
+import { CreateRoleDto } from '../dto/create-role.dto';
 
 @Injectable()
 export class RolesService {
     constructor(
-        @InjectModel(Role.name) private roleModel: Model<RoleDocument>,
+        private readonly roleRepository: RoleRepository,
     ) { }
 
+    async createRole(dto: CreateRoleDto): Promise<GetRoleDto> {
+        const existing = await this.roleRepository.findByNameActive(dto.name);
+        if (existing) {
+            throw new ConflictException('Bu isimde bir rol zaten mevcut');
+        }
+
+        const created = await this.roleRepository.create({
+            name: dto.name,
+            description: dto.description || '',
+            isActive: dto.isActive !== undefined ? dto.isActive : true,
+            isDeleted: false,
+            permissions: [],
+        } as any);
+
+        const role = await this.roleRepository.findByIdLean(String((created as any)._id));
+        if (!role) {
+            throw new NotFoundException('Rol bulunamadı');
+        }
+        return {
+            id: role._id.toString(),
+            name: role.name,
+            description: role.description,
+            isActive: role.isActive,
+            isDeleted: role.isDeleted,
+            createdAt: (role as any).createdAt,
+            updatedAt: (role as any).updatedAt,
+        };
+    }
+
     async getAllRoles(): Promise<GetRoleDto[]> {
-        const roles = await this.roleModel.find({ isDeleted: false })
-            .sort({ createdAt: -1 })
-            .lean();
+        const roles = await this.roleRepository.findAllActiveSorted();
 
         return roles.map(role => ({
             id: role._id.toString(),
@@ -28,7 +54,7 @@ export class RolesService {
     }
 
     async updateRole(roleId: string, updateData: UpdateRoleDto): Promise<GetRoleDto> {
-        const role = await this.roleModel.findById(roleId);
+        const role = await this.roleRepository.findById(roleId);
         if (!role) {
             throw new NotFoundException('Rol bulunamadı');
         }
@@ -44,14 +70,14 @@ export class RolesService {
             role.isActive = updateData.isActive;
         }
 
-        await role.save();
+        await this.roleRepository.save(role);
 
         // Güncellenmiş rol bilgilerini döndür
         return this.getRoleById(roleId);
     }
 
     async deleteRole(roleId: string): Promise<{ message: string }> {
-        const role = await this.roleModel.findById(roleId);
+        const role = await this.roleRepository.findById(roleId);
         if (!role) {
             throw new NotFoundException('Rol bulunamadı');
         }
@@ -64,7 +90,7 @@ export class RolesService {
     }
 
     private async getRoleById(roleId: string): Promise<GetRoleDto> {
-        const role = await this.roleModel.findById(roleId).lean();
+        const role = await this.roleRepository.findByIdLean(roleId);
 
         if (!role) {
             throw new NotFoundException('Rol bulunamadı');

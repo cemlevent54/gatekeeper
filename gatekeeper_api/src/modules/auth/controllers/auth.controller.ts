@@ -1,32 +1,28 @@
 import { Controller, Post, Body, ValidationPipe, HttpStatus, Res } from '@nestjs/common';
-import { CommandBus } from '@nestjs/cqrs';
-import { RegisterCommand } from '../cqrs/commands/impl/registercommand.impl';
-import { LoginCommand } from '../cqrs/commands/impl/logincommand.impl';
 import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
 import { VerifyEmailDto } from '../dto/verify-email.dto';
 import { ForgotPasswordDto } from '../dto/forgot-password.dto';
 import { ResetPasswordDto } from '../dto/reset-password.dto';
 import { LogoutDto } from '../dto/logout.dto';
-import { VerifyEmailCommand } from '../cqrs/commands/impl/verifyemailcommand.impl';
-import { ForgotPasswordCommand } from '../cqrs/commands/impl/forgotpasswordcommand.impl';
-import { ResetPasswordCommand } from '../cqrs/commands/impl/resetpasswordcommand.impl';
-import { LogoutCommand } from '../cqrs/commands/impl/logoutcommand.impl';
 import type { Response } from 'express';
+import { AuthService } from '../services/auth.service';
 
 @Controller('auth')
 export class AuthController {
-    constructor(private readonly commandBus: CommandBus) { }
+    constructor(private readonly authService: AuthService) { }
 
     @Post('register')
     async register(@Body(new ValidationPipe()) registerDto: RegisterDto, @Res() res: Response) {
         try {
-            // CQRS - CommandBus ile kayıt komutunu çalıştır
-            const result = await this.commandBus.execute(new RegisterCommand(
-                registerDto.username,
-                registerDto.email,
-                registerDto.password,
-            ));
+            const result = await this.authService.register(registerDto);
+            if (!result) {
+                return res.status(HttpStatus.BAD_REQUEST).json({
+                    success: false,
+                    message: 'User registration failed',
+                    data: null,
+                });
+            }
             if (result?.reactivated) {
                 return res.status(HttpStatus.OK).json({
                     success: true,
@@ -52,10 +48,7 @@ export class AuthController {
     @Post('login')
     async login(@Body(new ValidationPipe()) loginDto: LoginDto, @Res() res: Response) {
         try {
-            const loginResult = await this.commandBus.execute(new LoginCommand(
-                loginDto.usernameOrEmail,
-                loginDto.password,
-            ));
+            const loginResult = await this.authService.login(loginDto);
             if (!loginResult) {
                 return res.status(HttpStatus.UNAUTHORIZED).json({
                     success: false,
@@ -81,10 +74,7 @@ export class AuthController {
     @Post('verify-email')
     async verifyEmail(@Body(new ValidationPipe()) verifyEmailDto: VerifyEmailDto, @Res() res: Response) {
         try {
-            const result = await this.commandBus.execute(new VerifyEmailCommand(
-                verifyEmailDto.otpCode,
-                verifyEmailDto.token,
-            ));
+            const result = await this.authService.verifyEmail(verifyEmailDto);
 
             if (!result.success) {
                 return res.status(HttpStatus.BAD_REQUEST).json({
@@ -112,9 +102,7 @@ export class AuthController {
     @Post('forgot-password')
     async forgotPassword(@Body(new ValidationPipe()) forgotPasswordDto: ForgotPasswordDto, @Res() res: Response) {
         try {
-            const result = await this.commandBus.execute(new ForgotPasswordCommand(
-                forgotPasswordDto.email,
-            ));
+            const result = await this.authService.forgotPassword(forgotPasswordDto);
 
             return res.status(HttpStatus.OK).json({
                 success: result.success,
@@ -134,11 +122,7 @@ export class AuthController {
     @Post('reset-password')
     async resetPassword(@Body(new ValidationPipe()) resetPasswordDto: ResetPasswordDto, @Res() res: Response) {
         try {
-            const result = await this.commandBus.execute(new ResetPasswordCommand(
-                resetPasswordDto.otpCode,
-                resetPasswordDto.token,
-                resetPasswordDto.password,
-            ));
+            const result = await this.authService.resetPassword(resetPasswordDto);
 
             if (!result.success) {
                 return res.status(HttpStatus.BAD_REQUEST).json({
@@ -166,9 +150,7 @@ export class AuthController {
     @Post('logout')
     async logout(@Body(new ValidationPipe()) logoutDto: LogoutDto, @Res() res: Response) {
         try {
-            const result = await this.commandBus.execute(new LogoutCommand(
-                logoutDto.refreshToken,
-            ));
+            const result = await this.authService.logout(logoutDto);
 
             if (!result.success) {
                 return res.status(HttpStatus.BAD_REQUEST).json({
