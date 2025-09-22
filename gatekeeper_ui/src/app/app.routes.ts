@@ -13,6 +13,8 @@ import { AdminUsersComponent } from '@pages/admin/users/admin-users.component';
 import { AdminRolesComponent } from '@pages/admin/roles/admin-roles.component';
 import { RolePermissionsComponent } from '@pages/admin/role-permissions/role-permissions.component';
 import { RolePermissionsListComponent } from '@pages/admin/roles/permissions/role-permissions-list.component';
+import { ProductComponent } from '@pages/admin/products/product.component';
+import { ProductCategoryComponent } from './pages/admin/products/product-category/product-category.component';
 
 export const routes: Routes = [
     { path: '', pathMatch: 'full', redirectTo: 'home' },
@@ -33,7 +35,10 @@ export const routes: Routes = [
             { path: 'users', component: AdminUsersComponent },
             { path: 'roles', component: AdminRolesComponent },
             { path: 'roles/permissions', component: RolePermissionsListComponent },
-            { path: 'role-permissions', component: RolePermissionsComponent }
+            { path: 'role-permissions', component: RolePermissionsComponent },
+            { path: 'products', component: ProductComponent },
+            // /products/category
+            { path: 'products/category', component: ProductCategoryComponent }
         ]
     },
     { path: '**', redirectTo: 'home' }

@@ -273,6 +273,11 @@ export class SidebarComponent implements OnInit {
         routerLink: '/admin/users'
       },
       {
+        label: 'Ürünler',
+        icon: 'pi pi-box',
+        routerLink: '/admin/products'
+      },
+      {
         label: 'Roller',
         icon: 'pi pi-key',
         routerLink: '/admin/roles'
