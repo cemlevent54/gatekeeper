@@ -3,12 +3,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Permission, PermissionDocument } from '../../schemas/permission.schema';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
-
-// Controller'ları manuel import et
-import { UserController } from '../../modules/user/controllers/user.controller';
-import { AuthController } from '../../modules/auth/controllers/auth.controller';
-import { RolesController } from '../../modules/roles/controllers/roles.controller';
-import { PermissionsController } from '../../modules/permissions/controllers/permissions.controller';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class PermissionSeederService implements OnModuleInit {
@@ -115,22 +111,61 @@ export class PermissionSeederService implements OnModuleInit {
     }
 
     /**
-     * Tüm controller'ları keşfeder
+     * Tüm controller'ları keşfeder (modules/**/controllers/*.controller.(ts|js))
      */
     private discoverControllers(): Type<any>[] {
-        const controllers: Type<any>[] = [
-            UserController,
-            AuthController,
-            RolesController,
-            PermissionsController,
+        const discovered: Type<any>[] = [];
+
+        const candidates = [
+            // dist altında çalışırken
+            path.join(__dirname, '..', '..', '..', 'modules'), // dist/modules
+            path.join(process.cwd(), 'dist', 'modules'),
+            // ts-node veya test sırasında
+            path.join(process.cwd(), 'src', 'modules')
         ];
 
-        console.log(`[PermissionSeeder] ${controllers.length} controller yüklendi:`);
-        controllers.forEach(controller => {
-            console.log(`  - ${controller.name}`);
-        });
+        const controllerFileRegex = /\.controller\.(js|ts)$/i;
 
-        return controllers;
+        const walk = (dir: string) => {
+            if (!fs.existsSync(dir)) return;
+            const entries = fs.readdirSync(dir, { withFileTypes: true });
+            for (const entry of entries) {
+                const fullPath = path.join(dir, entry.name);
+                if (entry.isDirectory()) {
+                    walk(fullPath);
+                } else if (controllerFileRegex.test(entry.name)) {
+                    try {
+                        const required = require(fullPath);
+                        for (const key of Object.keys(required)) {
+                            const exp = required[key];
+                            if (typeof exp === 'function' && /Controller$/.test(exp.name)) {
+                                discovered.push(exp as Type<any>);
+                            }
+                        }
+                    } catch (e: any) {
+                        console.warn(`[PermissionSeeder] Controller yüklenemedi: ${fullPath}`, e?.message || e);
+                    }
+                }
+            }
+        };
+
+        let used = '';
+        for (const base of candidates) {
+            if (fs.existsSync(base)) {
+                used = base;
+                walk(base);
+                break;
+            }
+        }
+
+        console.log(`[PermissionSeeder] Controller tarama dizini: ${used || 'bulunamadı'}`);
+
+        // Benzersiz hale getir
+        const unique = Array.from(new Set(discovered));
+
+        console.log(`[PermissionSeeder] ${unique.length} controller dinamik olarak yüklendi:`);
+        unique.forEach((c) => console.log(`  - ${c.name}`));
+        return unique;
     }
 
     /**
@@ -214,6 +249,7 @@ export class PermissionSeederService implements OnModuleInit {
             'admin': 'admin',
             'role': 'rol',
             'permission': 'izin',
+            'product-category': 'ürün kategorisi',
             'system': 'sistem',
             'report': 'rapor',
             'audit': 'denetim',

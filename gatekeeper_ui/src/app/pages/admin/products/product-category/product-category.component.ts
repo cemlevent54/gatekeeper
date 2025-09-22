@@ -8,14 +8,9 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { InputTextModule } from 'primeng/inputtext';
 import { DataTableComponent, DataTableColumn, DataTableAction } from '../../../../../components/common/datatable.component';
+import { ProductCategoryService, ProductCategoryDto } from '../../../../services/product-category.service';
 
-interface CategoryItem {
-    id: string;
-    name: string;
-    slug: string;
-    createdAt: Date;
-    updatedAt?: Date;
-}
+interface CategoryItem extends ProductCategoryDto { }
 
 @Component({
     selector: 'app-product-categories',
@@ -105,12 +100,14 @@ export class ProductCategoryComponent {
     private readonly formBuilder = inject(FormBuilder);
     private readonly confirmation = inject(ConfirmationService);
     private readonly messages = inject(MessageService);
+    private readonly api = inject(ProductCategoryService);
 
     loading = false;
     saving = false;
     modalVisible = false;
     isEditMode = false;
     editingIndex: number | null = null;
+    editingId: string | null = null;
 
     form: FormGroup = this.formBuilder.group({
         name: ['', Validators.required],
@@ -129,23 +126,37 @@ export class ProductCategoryComponent {
         { label: 'Delete', icon: 'pi pi-trash', severity: 'danger', tooltip: 'Sil' }
     ];
 
-    categories: CategoryItem[] = [
-        { id: 'CAT-001', name: 'Elektronik', slug: 'elektronik', createdAt: new Date() },
-        { id: 'CAT-002', name: 'Giyim', slug: 'giyim', createdAt: new Date() },
-        { id: 'CAT-003', name: 'Ev & Yaşam', slug: 'ev-yasam', createdAt: new Date() },
-        { id: 'CAT-004', name: 'Kitap', slug: 'kitap', createdAt: new Date() }
-    ];
+    categories: CategoryItem[] = [];
 
     openCreate() {
         this.isEditMode = false;
         this.editingIndex = null;
+        this.editingId = null;
         this.form.reset({ name: '', slug: '' });
         this.modalVisible = true;
+    }
+
+    ngOnInit() {
+        this.fetchList();
+    }
+
+    private fetchList() {
+        this.loading = true;
+        this.api.list().subscribe({
+            next: (data) => {
+                this.categories = data as CategoryItem[];
+            },
+            error: () => {
+                this.messages.add({ severity: 'error', summary: 'Hata', detail: 'Kategoriler getirilemedi' });
+            },
+            complete: () => this.loading = false
+        });
     }
 
     openEdit(category: CategoryItem, index: number) {
         this.isEditMode = true;
         this.editingIndex = index;
+        this.editingId = (category as any).id || (category as any)._id || null;
         this.form.reset({ name: category.name, slug: category.slug });
         this.modalVisible = true;
     }
@@ -153,6 +164,7 @@ export class ProductCategoryComponent {
     closeModal() {
         this.modalVisible = false;
         this.saving = false;
+        this.editingId = null;
     }
 
     onTableAction(e: { action: DataTableAction; rowData: CategoryItem; rowIndex: number }) {
@@ -174,31 +186,37 @@ export class ProductCategoryComponent {
 
         if (this.isEditMode && this.editingIndex !== null) {
             const original = { ...this.categories[this.editingIndex] };
-            const updated: CategoryItem = { ...original, ...payload, updatedAt: new Date() };
-            this.categories = this.categories.map((c, i) => i === this.editingIndex ? updated : c);
-            this.simulateRequest()
-                .then(() => {
+            const optimistic: CategoryItem = { ...original, ...payload, updatedAt: new Date() } as any;
+            this.categories = this.categories.map((c, i) => i === this.editingIndex ? optimistic : c);
+            const idForUpdate = (this.editingId || (original as any).id || (original as any)._id) as string;
+            this.api.update(idForUpdate, payload).subscribe({
+                next: (updated) => {
                     this.messages.add({ severity: 'success', summary: 'Güncellendi', detail: 'Kategori başarıyla güncellendi.' });
                     this.closeModal();
-                })
-                .catch(() => {
+                },
+                error: () => {
                     this.categories = this.categories.map((c, i) => i === this.editingIndex! ? original : c);
                     this.messages.add({ severity: 'error', summary: 'Hata', detail: 'Kategori güncellenemedi.' });
-                })
-                .finally(() => this.saving = false);
+                },
+                complete: () => this.saving = false
+            });
         } else {
-            const created: CategoryItem = { id: this.generateId(), ...payload, createdAt: new Date() } as CategoryItem;
-            this.categories = [created, ...this.categories];
-            this.simulateRequest()
-                .then(() => {
+            const tempId = 'TMP-' + Math.random().toString(36).slice(2, 8);
+            const optimistic: CategoryItem = { id: tempId, ...payload, createdAt: new Date() } as any;
+            this.categories = [optimistic, ...this.categories];
+            this.api.create(payload).subscribe({
+                next: (created) => {
                     this.messages.add({ severity: 'success', summary: 'Eklendi', detail: 'Kategori başarıyla eklendi.' });
+                    // temp kaydı gerçek kayıtla değiştir
+                    this.categories = this.categories.map(c => c.id === tempId ? created as any : c);
                     this.closeModal();
-                })
-                .catch(() => {
-                    this.categories = this.categories.filter(c => c.id !== created.id);
+                },
+                error: () => {
+                    this.categories = this.categories.filter(c => c.id !== tempId);
                     this.messages.add({ severity: 'error', summary: 'Hata', detail: 'Kategori eklenemedi.' });
-                })
-                .finally(() => this.saving = false);
+                },
+                complete: () => this.saving = false
+            });
         }
     }
 
@@ -219,14 +237,15 @@ export class ProductCategoryComponent {
     private deleteWithOptimistic(row: CategoryItem, index: number) {
         const original = [...this.categories];
         this.categories = this.categories.filter((_, i) => i !== index);
-        this.simulateRequest()
-            .then(() => {
+        this.api.remove(row.id).subscribe({
+            next: () => {
                 this.messages.add({ severity: 'success', summary: 'Silindi', detail: 'Kategori başarıyla silindi.' });
-            })
-            .catch(() => {
+            },
+            error: () => {
                 this.categories = original;
                 this.messages.add({ severity: 'error', summary: 'Hata', detail: 'Kategori silinemedi.' });
-            });
+            }
+        });
     }
 
     autoSlug() {
@@ -245,9 +264,7 @@ export class ProductCategoryComponent {
         }
     }
 
-    private simulateRequest(): Promise<void> {
-        return new Promise((resolve) => setTimeout(resolve, 500));
-    }
+    private simulateRequest(): Promise<void> { return Promise.resolve(); }
 
     private generateId(): string {
         const rand = Math.random().toString(36).slice(2, 6).toUpperCase();

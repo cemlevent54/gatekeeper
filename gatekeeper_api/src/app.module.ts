@@ -9,6 +9,7 @@ import { MailModule } from './modules/mail/mail.module';
 import { UserModule } from './modules/user/user.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { PermissionModule } from './modules/permissions/permission.module';
+import { ProductCategoryModule } from './modules/product-category/product-category.module';
 import { HealthController } from './health/health.controller';
 import { PermissionSeederService } from './common/services/permission-seeder.service';
 import { Permission, PermissionSchema } from './schemas/permission.schema';
@@ -28,6 +29,7 @@ import { Permission, PermissionSchema } from './schemas/permission.schema';
     UserModule,
     RolesModule,
     PermissionModule,
+    ProductCategoryModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService, PermissionSeederService],
