@@ -1,4 +1,4 @@
-import { Prop, Schema } from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 import { TimezoneUtil } from '../common/utils/timezone.util';
 
@@ -15,6 +15,9 @@ export type ProductDocument = HydratedDocument<Product>;
 export class Product {
     @Prop({ type: String, required: true, unique: true })
     name: string;
+
+    @Prop({ type: String, required: true })
+    description: string;
 
     @Prop({ type: String, required: true, unique: true })
     slug: string;
@@ -34,3 +37,5 @@ export class Product {
     @Prop({ type: Boolean, default: false })
     isDeleted: boolean;
 }
+
+export const ProductSchema = SchemaFactory.createForClass(Product);

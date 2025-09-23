@@ -61,6 +61,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     private buildMenu(): void {
         const baseItems: MenuItem[] = [
             { label: 'Ana Sayfa', icon: 'pi pi-home', routerLink: '/' },
+            { label: 'Ürünler', icon: 'pi pi-box', routerLink: '/products' },
             { label: 'Hakkında', icon: 'pi pi-info-circle', routerLink: '/about' }
         ];
 

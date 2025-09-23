@@ -15,6 +15,7 @@ import { RolePermissionsComponent } from '@pages/admin/role-permissions/role-per
 import { RolePermissionsListComponent } from '@pages/admin/roles/permissions/role-permissions-list.component';
 import { ProductComponent } from '@pages/admin/products/product.component';
 import { ProductCategoryComponent } from './pages/admin/products/product-category/product-category.component';
+import { UserProductComponent } from '@pages/product/user-product.component';
 
 export const routes: Routes = [
     { path: '', pathMatch: 'full', redirectTo: 'home' },
@@ -25,6 +26,7 @@ export const routes: Routes = [
     { path: 'forgot-password', component: ForgotPasswordPageComponent },
     { path: 'reset-password', component: ResetPasswordPageComponent },
     { path: 'account', component: UserAccountComponent },
+    { path: 'products', component: UserProductComponent },
     {
         path: 'admin',
         component: AdminLayoutComponent,

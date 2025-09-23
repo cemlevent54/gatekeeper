@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, map, catchError, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export interface ProductCategoryDto {
@@ -36,7 +36,14 @@ export class ProductCategoryService {
     }
 
     list(): Observable<ProductCategoryDto[]> {
-        return this.http.get<ApiResponse<ProductCategoryDto[]>>(this.baseUrl).pipe(map(r => r.data));
+        return this.http.get<ApiResponse<ProductCategoryDto[]>>(this.baseUrl, { headers: this.getAuthHeaders() })
+            .pipe(
+                map(r => r.data || []),
+                catchError(error => {
+                    console.error('[ProductCategoryService][list] Hata:', error);
+                    return throwError(() => error);
+                })
+            );
     }
 
     get(idOrSlug: string): Observable<ProductCategoryDto> {
